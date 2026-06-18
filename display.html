@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake & Pitfall — Display</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0a0e27;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 { font-size: 3em; margin-bottom: 10px; }
+    #status {
+      font-size: 1.5em;
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .waiting { background: #ff9800; }
+    .connected { background: #4caf50; }
+    #log {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 800px;
+      min-height: 200px;
+      font-family: 'Courier New', monospace;
+      font-size: 1.2em;
+      overflow-y: auto;
+    }
+    .log-entry {
+      padding: 8px;
+      margin: 5px 0;
+      background: rgba(76, 175, 80, 0.2);
+      border-left: 4px solid #4caf50;
+      border-radius: 4px;
+    }
+    #roomCode {
+      font-size: 2em;
+      background: #ffd700;
+      color: #0a0e27;
+      padding: 10px 30px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-weight: bold;
+      letter-spacing: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎲 Snake & Pitfall — Display</h1>
+  <div>Room Code: <span id="roomCode">SNAKE-PITFALL-2026</span></div>
+  <div id="status" class="waiting">⏳ Waiting for GM to connect...</div>
+
+  <div id="log">
+    <div style="opacity:0.5;">Messages from GM will appear here →</div>
+  </div>
+
+  <!-- PeerJS library -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+  <script>
+    const ROOM_ID = 'snake-pitfall-2026-display';  // fixed ID, both files agree
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+
+    // Create peer with fixed ID so GM knows where to connect
+    const peer = new Peer(ROOM_ID, { debug: 2 });
+
+    peer.on('open', (id) => {
+      console.log('Display peer ready, ID:', id);
+      statusEl.textContent = '✅ Display ready — waiting for GM iPad';
+    });
+
+    peer.on('connection', (conn) => {
+      console.log('GM connected!');
+      statusEl.textContent = '🟢 GM Connected';
+      statusEl.className = 'connected';
+
+      conn.on('data', (msg) => {
+        console.log('Received:', msg);
+        addLog(`📨 ${JSON.stringify(msg)}`);
+      });
+
+      conn.on('close', () => {
+        statusEl.textContent = '⚠️ GM disconnected';
+        statusEl.className = 'waiting';
+      });
+    });
+
+    peer.on('error', (err) => {
+      console.error('Peer error:', err);
+      statusEl.textContent = '❌ Error: ' + err.type;
+    });
+
+    function addLog(text) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+      logEl.prepend(entry);
+    }
+  </script>
+</body>
+</html>
