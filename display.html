@@ -37,6 +37,22 @@
     .waiting { background: #ff9800; }
     .connected { background: #4caf50; }
 
+    /* === Phase Banner === */
+    #phaseBanner {
+      font-size: 2em;
+      padding: 30px 60px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      text-align: center;
+      margin: 40px 0;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    #phaseBanner.hidden { display: none; }
+
     /* === Game Board === */
     #board {
       display: grid;
@@ -50,6 +66,7 @@
       border-radius: 16px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.4);
     }
+    #board.hidden { display: none; }
     .cell {
       background: linear-gradient(145deg, #2a3568, #1e2850);
       border-radius: 10px;
@@ -62,13 +79,8 @@
       position: relative;
       transition: background 0.3s;
     }
-    .cell.start {
-      background: linear-gradient(145deg, #2d7a3d, #1f5a2c);
-    }
-    .cell.goal {
-      background: linear-gradient(145deg, #d4af37, #b8941f);
-      color: #0a0e27;
-    }
+    .cell.start { background: linear-gradient(145deg, #2d7a3d, #1f5a2c); }
+    .cell.goal { background: linear-gradient(145deg, #d4af37, #b8941f); color: #0a0e27; }
     .cell-number {
       position: absolute;
       top: 6px;
@@ -82,16 +94,10 @@
       font-size: 1.5em;
       z-index: 2;
     }
-    .piece {
-      transition: transform 0.3s;
-    }
-    .piece.moving {
-      transform: scale(1.3);
-      animation: bounce 0.3s ease;
-    }
+    .piece.moving { animation: bounce 0.3s ease; }
     @keyframes bounce {
-      0%, 100% { transform: scale(1.3) translateY(0); }
-      50% { transform: scale(1.4) translateY(-6px); }
+      0%, 100% { transform: scale(1) translateY(0); }
+      50% { transform: scale(1.2) translateY(-6px); }
     }
     .cell.highlight {
       background: linear-gradient(145deg, #f39c12, #d68910) !important;
@@ -109,6 +115,7 @@
       margin-top: 25px;
       font-size: 1.4em;
     }
+    #scorePanel.hidden { display: none; }
     .team-score {
       padding: 12px 24px;
       border-radius: 12px;
@@ -143,9 +150,7 @@
       transition: transform 0.3s ease;
       z-index: 100;
     }
-    #diceDisplay.show {
-      transform: translate(-50%, -50%) scale(1);
-    }
+    #diceDisplay.show { transform: translate(-50%, -50%) scale(1); }
   </style>
 </head>
 <body>
@@ -155,9 +160,11 @@
     <div id="status" class="waiting">⏳ Waiting for GM...</div>
   </div>
 
+  <div id="phaseBanner" class="hidden">🤫 Teams are setting up the board...</div>
+
   <div id="board"></div>
 
-  <div id="scorePanel">
+  <div id="scorePanel" class="hidden">
     <div class="team-score active" id="teamAPanel">
       <span class="team-a-color">🔵 Team A</span>
       <span>Cell: <span id="teamAPos">1</span></span>
@@ -174,23 +181,16 @@
   <script>
     // === Game State ===
     const state = {
+      phase: 'setup',  // 'setup' | 'playing'
       teamA: { position: 1 },
       teamB: { position: 1 },
       currentTurn: 'A'
     };
 
     // === Board Setup (Zigzag layout) ===
-    // Row 5 (top): 21→25 left to right
-    // Row 4: 20→16 right to left
-    // Row 3: 11→15 left to right
-    // Row 2: 10→6 right to left
-    // Row 1 (bottom): 1→5 left to right
     function getCellNumberAt(visualRow, visualCol) {
-      // visualRow 0 = top of board (row containing 21-25)
-      // We want bottom row (visualRow 4) to be cells 1-5
       const rowFromBottom = 4 - visualRow;
       const rowStart = rowFromBottom * 5 + 1;
-      // Even rows from bottom go left-to-right, odd rows right-to-left
       if (rowFromBottom % 2 === 0) {
         return rowStart + visualCol;
       } else {
@@ -199,7 +199,7 @@
     }
 
     const board = document.getElementById('board');
-    const cellElements = {};  // cellNumber -> DOM element
+    const cellElements = {};
     for (let r = 0; r < 5; r++) {
       for (let c = 0; c < 5; c++) {
         const cellNum = getCellNumberAt(r, c);
@@ -216,24 +216,18 @@
       }
     }
 
-    // === Render Pieces ===
     function renderPieces() {
-      // Clear all pieces
       for (let i = 1; i <= 25; i++) {
         document.getElementById(`pieces-${i}`).innerHTML = '';
       }
-      // Place team A
       const aSlot = document.getElementById(`pieces-${state.teamA.position}`);
       aSlot.innerHTML += `<span class="piece" id="pieceA">🔵</span>`;
-      // Place team B
       const bSlot = document.getElementById(`pieces-${state.teamB.position}`);
       bSlot.innerHTML += `<span class="piece" id="pieceB">🔴</span>`;
-
       document.getElementById('teamAPos').textContent = state.teamA.position;
       document.getElementById('teamBPos').textContent = state.teamB.position;
     }
 
-    // === Animated Step-by-Step Movement ===
     async function moveTeam(team, steps) {
       const startPos = state[`team${team}`].position;
       let currentPos = startPos;
@@ -241,7 +235,6 @@
         currentPos = Math.min(currentPos + 1, 25);
         state[`team${team}`].position = currentPos;
         renderPieces();
-        // Highlight the cell briefly
         const cell = cellElements[currentPos];
         cell.classList.add('highlight');
         await sleep(350);
@@ -250,11 +243,8 @@
       }
     }
 
-    function sleep(ms) {
-      return new Promise(r => setTimeout(r, ms));
-    }
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    // === Dice Animation ===
     async function showDice(value) {
       const diceEl = document.getElementById('diceDisplay');
       const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄'];
@@ -265,7 +255,6 @@
       await sleep(300);
     }
 
-    // === Update Turn Indicator ===
     function updateTurn() {
       const indicator = document.getElementById('turnIndicator');
       const aPanel = document.getElementById('teamAPanel');
@@ -283,9 +272,25 @@
       }
     }
 
+    function updatePhase() {
+      const banner = document.getElementById('phaseBanner');
+      const boardEl = document.getElementById('board');
+      const score = document.getElementById('scorePanel');
+      if (state.phase === 'setup') {
+        banner.classList.remove('hidden');
+        boardEl.classList.add('hidden');
+        score.classList.add('hidden');
+      } else {
+        banner.classList.add('hidden');
+        boardEl.classList.remove('hidden');
+        score.classList.remove('hidden');
+      }
+    }
+
     // Initial render
     renderPieces();
     updateTurn();
+    updatePhase();
 
     // === PeerJS Connection ===
     const ROOM_ID = 'snake-pitfall-2026-display';
@@ -315,7 +320,6 @@
       statusEl.textContent = '❌ ' + err.type;
     });
 
-    // === Handle GM Actions ===
     async function handleAction(msg) {
       switch (msg.type) {
         case 'dice':
@@ -330,8 +334,18 @@
           state.teamA.position = 1;
           state.teamB.position = 1;
           state.currentTurn = 'A';
+          state.phase = 'setup';
           renderPieces();
           updateTurn();
+          updatePhase();
+          break;
+        case 'startGame':
+          state.phase = 'playing';
+          updatePhase();
+          break;
+        case 'setupMode':
+          state.phase = 'setup';
+          updatePhase();
           break;
       }
     }
