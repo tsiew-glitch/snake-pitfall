@@ -11,50 +11,47 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #1a1f3a 0%, #2a3055 100%);
       color: white;
-      padding: 12px;
+      padding: 10px;
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
     }
-    h1 { text-align: center; margin: 5px 0 10px; font-size: 1.4em; }
+    h1 { text-align: center; margin: 5px 0 8px; font-size: 1.3em; }
     #status {
-      text-align: center;
-      padding: 8px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      font-weight: bold;
-      font-size: 0.95em;
+      text-align: center; padding: 8px;
+      border-radius: 8px; margin-bottom: 10px;
+      font-weight: bold; font-size: 0.95em;
     }
     .waiting { background: #ff9800; }
     .connected { background: #4caf50; }
     .error { background: #f44336; }
 
-    #phaseToggle { display: flex; gap: 4px; margin-bottom: 12px; }
+    #phaseToggle { display: flex; gap: 4px; margin-bottom: 10px; }
     .phase-tab {
-      flex: 1; padding: 10px;
+      flex: 1; padding: 9px;
       border: 2px solid #4a90e2;
       background: transparent;
       color: white; border-radius: 8px;
-      font-size: 1em; font-weight: bold;
+      font-size: 0.95em; font-weight: bold;
       cursor: pointer;
     }
     .phase-tab.active { background: #4a90e2; }
 
     .panel {
       background: rgba(255,255,255,0.08);
-      padding: 12px;
+      padding: 10px;
       border-radius: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
-    .panel h2 { text-align: center; margin: 0 0 10px; font-size: 1em; opacity: 0.9; }
+    .panel h2 { text-align: center; margin: 0 0 8px; font-size: 0.95em; opacity: 0.9; }
 
     #teamSelector { display: flex; gap: 6px; margin-bottom: 10px; }
     .team-btn {
-      flex: 1; padding: 14px;
+      flex: 1; padding: 13px;
       border: 2px solid;
       background: transparent;
       color: white; border-radius: 8px;
-      font-size: 1.1em; font-weight: bold;
+      font-size: 1.05em; font-weight: bold;
       cursor: pointer;
     }
     .team-btn.team-a-btn { border-color: #4a90e2; }
@@ -64,11 +61,11 @@
 
     #toolSelector { display: flex; gap: 6px; margin-bottom: 10px; }
     .tool-btn {
-      flex: 1; padding: 12px 8px;
+      flex: 1; padding: 11px 6px;
       border: 2px solid transparent;
       background: #2c3e50;
       color: white; border-radius: 8px;
-      font-size: 0.95em; font-weight: bold;
+      font-size: 0.9em; font-weight: bold;
       cursor: pointer;
     }
     .tool-btn.snake { background: #27ae60; }
@@ -91,7 +88,7 @@
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 4px;
-      margin: 10px 0;
+      margin: 8px 0;
       aspect-ratio: 1 / 1;
     }
     .setup-cell {
@@ -102,7 +99,7 @@
       font-size: 0.7em; font-weight: bold;
       position: relative; cursor: pointer;
       transition: all 0.15s;
-      min-height: 50px;
+      min-height: 48px;
     }
     .setup-cell.start { background: #2d7a3d; }
     .setup-cell.goal { background: #d4af37; color: #1a1f3a; }
@@ -111,14 +108,10 @@
       background: #f39c12 !important;
       animation: pulseSrc 0.6s infinite;
     }
-    @keyframes pulseSrc {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.08); }
-    }
+    @keyframes pulseSrc { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
     .setup-cell.valid-target {
       background: #16a085 !important;
       animation: pulseTgt 0.8s infinite;
-      cursor: pointer;
     }
     @keyframes pulseTgt {
       0%, 100% { box-shadow: 0 0 0 rgba(22, 160, 133, 0); }
@@ -130,35 +123,71 @@
     .item-tag { font-size: 0.85em; }
 
     #placedList {
-      font-size: 0.85em;
-      padding: 8px;
+      font-size: 0.85em; padding: 8px;
       background: rgba(0,0,0,0.2);
       border-radius: 6px;
-      max-height: 100px;
+      max-height: 90px;
       overflow-y: auto;
       margin-bottom: 8px;
     }
 
     #turnDisplay {
       text-align: center;
-      font-size: 1.4em;
+      font-size: 1.3em;
       font-weight: bold;
-      padding: 12px;
+      padding: 10px;
       border-radius: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     #turnDisplay.team-a { background: rgba(74, 144, 226, 0.3); border: 2px solid #4a90e2; }
     #turnDisplay.team-b { background: rgba(231, 76, 60, 0.3); border: 2px solid #e74c3c; }
 
-    .dice-row {
+    #pieceSelector {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 6px;
       margin-bottom: 10px;
     }
+    .piece-btn {
+      padding: 12px 10px;
+      border: 2px solid transparent;
+      background: #2c3e50;
+      color: white;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      text-align: left;
+    }
+    .piece-btn .piece-id {
+      font-size: 1.3em;
+      margin-right: 6px;
+    }
+    .piece-btn.team-a-piece { border-color: #4a90e2; }
+    .piece-btn.team-b-piece { border-color: #e74c3c; }
+    .piece-btn.selected {
+      background: #1abc9c;
+      border-color: white;
+      box-shadow: 0 0 15px rgba(26, 188, 156, 0.7);
+    }
+    .piece-btn.at-goal {
+      background: #d4af37;
+      color: #1a1f3a;
+      opacity: 0.7;
+    }
+    .piece-btn.at-goal::after {
+      content: ' 🏁';
+    }
+
+    .dice-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      margin-bottom: 8px;
+    }
     .dice-btn {
-      font-size: 1.7em;
-      padding: 14px 0;
+      font-size: 1.5em;
+      padding: 12px 0;
       border: none;
       border-radius: 8px;
       background: #2c3e50;
@@ -170,8 +199,8 @@
 
     .action-btn {
       width: 100%;
-      font-size: 1.1em;
-      padding: 14px;
+      font-size: 1.05em;
+      padding: 13px;
       margin: 4px 0;
       border: none;
       border-radius: 8px;
@@ -187,12 +216,6 @@
     .action-btn.danger { background: #e74c3c; }
     .action-btn.warning { background: #f39c12; }
 
-    .position-info {
-      display: flex;
-      justify-content: space-around;
-      font-size: 0.95em;
-      margin-top: 6px;
-    }
     .team-a-color { color: #4a90e2; font-weight: bold; }
     .team-b-color { color: #e74c3c; font-weight: bold; }
 
@@ -201,7 +224,7 @@
       padding: 8px;
       background: rgba(0,0,0,0.3);
       border-radius: 6px;
-      max-height: 200px;
+      max-height: 150px;
       overflow-y: auto;
     }
   </style>
@@ -255,6 +278,11 @@
     <div id="turnDisplay" class="team-a">🔵 Team A's Turn</div>
 
     <div class="panel">
+      <h2>🎯 Select Piece</h2>
+      <div id="pieceSelector"></div>
+    </div>
+
+    <div class="panel">
       <h2>🎲 Dice (1–5)</h2>
       <div class="dice-row">
         <button class="dice-btn" data-value="1" onclick="selectDice(1)">1</button>
@@ -264,7 +292,7 @@
         <button class="dice-btn" data-value="5" onclick="selectDice(5)">5</button>
       </div>
       <button class="action-btn primary" id="moveBtn" onclick="sendMove()" disabled>
-        ▶️ Move Current Team
+        ▶️ Move Selected Piece
       </button>
     </div>
 
@@ -278,10 +306,6 @@
       <button class="action-btn switch" onclick="switchTurn()">🔄 Switch Turn</button>
       <button class="action-btn warning" onclick="backToSetup()">🛠️ Back to Setup</button>
       <button class="action-btn danger" onclick="resetGame()">🔄 Reset Game</button>
-      <div class="position-info">
-        <span><span class="team-a-color">🔵 A:</span> Cell <span id="posA">1</span></span>
-        <span><span class="team-b-color">🔴 B:</span> Cell <span id="posB">1</span></span>
-      </div>
     </div>
   </div>
 
@@ -300,10 +324,14 @@
       B: { snakes: [], pitfalls: [], treasures: [] }
     };
 
+    const PIECE_NUMS = ['①', '②', '③', '④'];
+    const teamPieces = {
+      A: [1, 1, 1, 1],
+      B: [1, 1, 1, 1]
+    };
     let currentTurn = 'A';
-    let teamAPos = 1;
-    let teamBPos = 1;
     let selectedDice = null;
+    let selectedPieceIdx = null;
 
     function getCellCoords(cellNum) {
       const rowFromBottom = Math.floor((cellNum - 1) / 5);
@@ -312,14 +340,12 @@
       const visualCol = (rowFromBottom % 2 === 0) ? posInRow : 4 - posInRow;
       return { visualRow, visualCol };
     }
-
     function getCellAtCoords(visualRow, visualCol) {
       if (visualRow < 0 || visualRow > 4 || visualCol < 0 || visualCol > 4) return null;
       const rowFromBottom = 4 - visualRow;
       const rowStart = rowFromBottom * 5 + 1;
       return (rowFromBottom % 2 === 0) ? rowStart + visualCol : rowStart + (4 - visualCol);
     }
-
     function getSnakeTargets(fromCell) {
       const { visualRow, visualCol } = getCellCoords(fromCell);
       const targets = [];
@@ -329,14 +355,12 @@
       if (upRight && upRight !== 1) targets.push(upRight);
       return targets;
     }
-
     function getPitfallTarget(fromCell) {
       const { visualRow, visualCol } = getCellCoords(fromCell);
       const target = getCellAtCoords(visualRow + 1, visualCol);
       if (!target || target === 1 || target === 25) return null;
       return target;
     }
-
     function getTotalCount(team, type) { return items[team][type].length; }
     function isProtected(cellNum) { return cellNum === 1 || cellNum === 25; }
 
@@ -380,74 +404,38 @@
     }
 
     function onCellTap(cellNum) {
-      if (isProtected(cellNum)) {
-        showHint('❌ Cell 1 and 25 cannot hold items');
-        return;
-      }
+      if (isProtected(cellNum)) { showHint('❌ Cell 1 and 25 cannot hold items'); return; }
       if (currentTool === 'treasure') {
-        if (getTotalCount(currentTeam, 'treasures') >= 3) {
-          showHint('❌ Max 3 treasures');
-          return;
-        }
+        if (getTotalCount(currentTeam, 'treasures') >= 3) { showHint('❌ Max 3 treasures'); return; }
         items[currentTeam].treasures.push(cellNum);
-        showHint(`💎 Treasure placed at cell ${cellNum}`);
-        renderSetupBoard();
-        updateQuota();
-        updatePlacedList();
+        showHint(`💎 Treasure at cell ${cellNum}`);
+        renderSetupBoard(); updateQuota(); updatePlacedList();
         if (navigator.vibrate) navigator.vibrate(30);
         return;
       }
       if (sourceCell === null) {
-        if (currentTool === 'snake' && getTotalCount(currentTeam, 'snakes') >= 3) {
-          showHint('❌ Max 3 snakes');
-          return;
-        }
-        if (currentTool === 'pitfall' && getTotalCount(currentTeam, 'pitfalls') >= 3) {
-          showHint('❌ Max 3 pitfalls');
-          return;
-        }
+        if (currentTool === 'snake' && getTotalCount(currentTeam, 'snakes') >= 3) { showHint('❌ Max 3 snakes'); return; }
+        if (currentTool === 'pitfall' && getTotalCount(currentTeam, 'pitfalls') >= 3) { showHint('❌ Max 3 pitfalls'); return; }
         let targets;
-        if (currentTool === 'snake') {
-          targets = getSnakeTargets(cellNum);
-        } else {
-          const t = getPitfallTarget(cellNum);
-          targets = t ? [t] : [];
-        }
+        if (currentTool === 'snake') targets = getSnakeTargets(cellNum);
+        else { const t = getPitfallTarget(cellNum); targets = t ? [t] : []; }
         if (targets.length === 0) {
-          showHint(currentTool === 'snake'
-            ? '❌ No valid diagonal-up target'
-            : '❌ No valid vertical-down target');
+          showHint(currentTool === 'snake' ? '❌ No diagonal-up target' : '❌ No vertical-down target');
           return;
         }
         sourceCell = cellNum;
         validTargets = targets;
-        showHint(`Tap a green cell to set ${currentTool === 'snake' ? '🟢 snake' : '🔴 pitfall'} destination`);
+        showHint(`Tap green cell to set ${currentTool === 'snake' ? '🟢 snake' : '🔴 pitfall'} destination`);
         renderSetupBoard();
         if (navigator.vibrate) navigator.vibrate(20);
       } else {
-        if (cellNum === sourceCell) {
-          sourceCell = null;
-          validTargets = [];
-          showHint('Selection cancelled');
-          renderSetupBoard();
-          return;
-        }
-        if (!validTargets.includes(cellNum)) {
-          showHint('❌ Tap a green cell');
-          return;
-        }
-        if (currentTool === 'snake') {
-          items[currentTeam].snakes.push({ from: sourceCell, to: cellNum });
-          showHint(`🟢 Snake: ${sourceCell} ↑ ${cellNum}`);
-        } else {
-          items[currentTeam].pitfalls.push({ from: sourceCell, to: cellNum });
-          showHint(`🔴 Pitfall: ${sourceCell} ↓ ${cellNum}`);
-        }
-        sourceCell = null;
-        validTargets = [];
-        renderSetupBoard();
-        updateQuota();
-        updatePlacedList();
+        if (cellNum === sourceCell) { sourceCell = null; validTargets = []; showHint('Cancelled'); renderSetupBoard(); return; }
+        if (!validTargets.includes(cellNum)) { showHint('❌ Tap a green cell'); return; }
+        if (currentTool === 'snake') items[currentTeam].snakes.push({ from: sourceCell, to: cellNum });
+        else items[currentTeam].pitfalls.push({ from: sourceCell, to: cellNum });
+        showHint(`Placed: ${sourceCell} → ${cellNum}`);
+        sourceCell = null; validTargets = [];
+        renderSetupBoard(); updateQuota(); updatePlacedList();
         if (navigator.vibrate) navigator.vibrate(50);
       }
     }
@@ -467,9 +455,9 @@
         const t = items[team];
         if (t.snakes.length || t.pitfalls.length || t.treasures.length) {
           html += `<div><strong>${color} Team ${team}:</strong></div>`;
-          t.snakes.forEach(s => html += `<div>&nbsp;&nbsp;🟢 ${s.from}→${s.to}</div>`);
-          t.pitfalls.forEach(p => html += `<div>&nbsp;&nbsp;🔴 ${p.from}→${p.to}</div>`);
-          if (t.treasures.length) html += `<div>&nbsp;&nbsp;💎 ${t.treasures.join(', ')}</div>`;
+          t.snakes.forEach(s => html += `<div>&nbsp;🟢 ${s.from}→${s.to}</div>`);
+          t.pitfalls.forEach(p => html += `<div>&nbsp;🔴 ${p.from}→${p.to}</div>`);
+          if (t.treasures.length) html += `<div>&nbsp;💎 ${t.treasures.join(', ')}</div>`;
         }
       }
       document.getElementById('placedList').innerHTML = html || 'No items placed yet';
@@ -498,7 +486,7 @@
       document.querySelector(`.team-${team.toLowerCase()}-btn`).classList.add('active');
       renderSetupBoard();
       updateQuota();
-      showHint(`Now placing for Team ${team}`);
+      showHint(`Placing for Team ${team}`);
     }
 
     function selectTool(tool) {
@@ -517,34 +505,29 @@
       else if (currentTool === 'pitfall' && t.pitfalls.length > 0) t.pitfalls.pop();
       else if (currentTool === 'treasure' && t.treasures.length > 0) t.treasures.pop();
       else { showHint('Nothing to undo'); return; }
-      sourceCell = null;
-      validTargets = [];
-      renderSetupBoard();
-      updateQuota();
-      updatePlacedList();
+      sourceCell = null; validTargets = [];
+      renderSetupBoard(); updateQuota(); updatePlacedList();
       showHint('Last item removed');
     }
 
     function clearTeam() {
       if (!confirm(`Clear all items by Team ${currentTeam}?`)) return;
       items[currentTeam] = { snakes: [], pitfalls: [], treasures: [] };
-      sourceCell = null;
-      validTargets = [];
-      renderSetupBoard();
-      updateQuota();
-      updatePlacedList();
+      sourceCell = null; validTargets = [];
+      renderSetupBoard(); updateQuota(); updatePlacedList();
     }
 
     function startGame() {
-      teamAPos = 1;
-      teamBPos = 1;
+      teamPieces.A = [1, 1, 1, 1];
+      teamPieces.B = [1, 1, 1, 1];
       currentTurn = 'A';
-      document.getElementById('posA').textContent = '1';
-      document.getElementById('posB').textContent = '1';
+      selectedPieceIdx = null;
+      selectedDice = null;
       document.getElementById('turnDisplay').textContent = "🔵 Team A's Turn";
       document.getElementById('turnDisplay').className = 'team-a';
       switchPhase('playing');
       updateCheatSheet();
+      renderPieceSelector();
       if (conn && conn.open) {
         conn.send({ type: 'reset' });
         setTimeout(() => {
@@ -559,9 +542,8 @@
       document.getElementById('playPhase').style.display = (p === 'playing') ? 'block' : 'none';
       document.getElementById('setupTab').classList.toggle('active', p === 'setup');
       document.getElementById('playTab').classList.toggle('active', p === 'playing');
-      if (p === 'setup' && conn && conn.open) {
-        conn.send({ type: 'setupMode' });
-      }
+      if (p === 'setup' && conn && conn.open) conn.send({ type: 'setupMode' });
+      if (p === 'playing') renderPieceSelector();
     }
 
     function backToSetup() {
@@ -569,28 +551,68 @@
       switchPhase('setup');
     }
 
+    function renderPieceSelector() {
+      const container = document.getElementById('pieceSelector');
+      container.innerHTML = '';
+      const positions = teamPieces[currentTurn];
+      const color = currentTurn === 'A' ? '🔵' : '🔴';
+      const teamClass = currentTurn === 'A' ? 'team-a-piece' : 'team-b-piece';
+      positions.forEach((pos, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `piece-btn ${teamClass}`;
+        if (selectedPieceIdx === idx) btn.classList.add('selected');
+        if (pos === 25) btn.classList.add('at-goal');
+        btn.innerHTML = `<span class="piece-id">${color}${PIECE_NUMS[idx]}</span> @ Cell ${pos}`;
+        btn.onclick = () => selectPiece(idx);
+        container.appendChild(btn);
+      });
+      updateMoveBtn();
+    }
+
+    function selectPiece(idx) {
+      if (teamPieces[currentTurn][idx] === 25) {
+        return;
+      }
+      selectedPieceIdx = idx;
+      renderPieceSelector();
+      if (navigator.vibrate) navigator.vibrate(20);
+    }
+
     function selectDice(value) {
       selectedDice = value;
       document.querySelectorAll('.dice-btn').forEach(btn => {
         btn.classList.toggle('selected', parseInt(btn.dataset.value) === value);
       });
-      document.getElementById('moveBtn').disabled = false;
+      updateMoveBtn();
       if (navigator.vibrate) navigator.vibrate(20);
     }
 
-    function sendMove() {
-      if (!selectedDice || !conn || !conn.open) return;
-      conn.send({ type: 'dice', value: selectedDice });
-      if (currentTurn === 'A') {
-        teamAPos = Math.min(teamAPos + selectedDice, 25);
-        document.getElementById('posA').textContent = teamAPos + '*';
+    function updateMoveBtn() {
+      const moveBtn = document.getElementById('moveBtn');
+      moveBtn.disabled = !(selectedPieceIdx !== null && selectedDice);
+      if (selectedPieceIdx !== null && selectedDice) {
+        const color = currentTurn === 'A' ? '🔵' : '🔴';
+        moveBtn.textContent = `▶️ Move ${color}${PIECE_NUMS[selectedPieceIdx]} by ${selectedDice}`;
       } else {
-        teamBPos = Math.min(teamBPos + selectedDice, 25);
-        document.getElementById('posB').textContent = teamBPos + '*';
+        moveBtn.textContent = '▶️ Select piece + dice';
       }
+    }
+
+    function sendMove() {
+      if (selectedPieceIdx === null || !selectedDice || !conn || !conn.open) return;
+      teamPieces[currentTurn][selectedPieceIdx] = Math.min(
+        teamPieces[currentTurn][selectedPieceIdx] + selectedDice, 25
+      );
+      conn.send({
+        type: 'movePiece',
+        team: currentTurn,
+        pieceIdx: selectedPieceIdx,
+        dice: selectedDice
+      });
       selectedDice = null;
+      selectedPieceIdx = null;
       document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
-      document.getElementById('moveBtn').disabled = true;
+      renderPieceSelector();
       if (navigator.vibrate) navigator.vibrate(50);
     }
 
@@ -604,6 +626,10 @@
         turnEl.textContent = "🔴 Team B's Turn";
         turnEl.className = 'team-b';
       }
+      selectedPieceIdx = null;
+      selectedDice = null;
+      document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
+      renderPieceSelector();
       if (conn && conn.open) conn.send({ type: 'switchTurn' });
     }
 
@@ -611,17 +637,15 @@
       if (!confirm('Reset game and clear all placements?')) return;
       items.A = { snakes: [], pitfalls: [], treasures: [] };
       items.B = { snakes: [], pitfalls: [], treasures: [] };
-      teamAPos = 1;
-      teamBPos = 1;
+      teamPieces.A = [1, 1, 1, 1];
+      teamPieces.B = [1, 1, 1, 1];
       currentTurn = 'A';
-      document.getElementById('posA').textContent = '1';
-      document.getElementById('posB').textContent = '1';
+      selectedDice = null;
+      selectedPieceIdx = null;
       switchPhase('setup');
       selectTeam('A');
       selectTool('snake');
-      renderSetupBoard();
-      updateQuota();
-      updatePlacedList();
+      renderSetupBoard(); updateQuota(); updatePlacedList();
       if (conn && conn.open) conn.send({ type: 'reset' });
     }
 
@@ -647,11 +671,9 @@
       statusEl.className = 'error';
     });
 
-    renderSetupBoard();
     updateQuota();
     updatePlacedList();
     selectTool('snake');
   </script>
 </body>
 </html>
-``
