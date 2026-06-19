@@ -142,7 +142,21 @@
     #turnDisplay.team-a { background: rgba(74, 144, 226, 0.3); border: 2px solid #4a90e2; }
     #turnDisplay.team-b { background: rgba(231, 76, 60, 0.3); border: 2px solid #e74c3c; }
 
-    /* === Timer Panel === */
+    /* === Final Turn / Locked Banner === */
+    #gameStatusBanner {
+      text-align: center;
+      font-size: 1.05em;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    #gameStatusBanner.hidden { display: none; }
+    #gameStatusBanner.final-turn { background: rgba(243, 156, 18, 0.4); border: 2px solid #f39c12; }
+    #gameStatusBanner.game-over { background: rgba(212, 175, 55, 0.5); border: 2px solid #d4af37; color: #1a1f3a; animation: none; }
+
     #timerDisplay {
       text-align: center;
       font-size: 2em;
@@ -245,6 +259,7 @@
     .action-btn.switch { background: #9b59b6; }
     .action-btn.danger { background: #e74c3c; }
     .action-btn.warning { background: #f39c12; }
+    .action-btn.endgame { background: #d4af37; color: #1a1f3a; }
 
     .team-a-color { color: #4a90e2; font-weight: bold; }
     .team-b-color { color: #e74c3c; font-weight: bold; }
@@ -256,6 +271,16 @@
       border-radius: 6px;
       max-height: 150px;
       overflow-y: auto;
+    }
+
+    #firstMoverInfo {
+      text-align: center;
+      font-size: 0.85em;
+      padding: 6px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      opacity: 0.85;
     }
   </style>
 </head>
@@ -305,14 +330,16 @@
   </div>
 
   <div id="playPhase" style="display:none;">
+    <div id="gameStatusBanner" class="hidden"></div>
     <div id="turnDisplay" class="team-a">🔵 Team A's Turn</div>
+    <div id="firstMoverInfo">First mover: not yet determined</div>
 
     <div class="panel">
       <h2>⏱️ Timer</h2>
       <div id="timerDisplay">⏱️ 15:00</div>
       <div class="timer-row">
-        <button class="timer-btn start" id="timerStartBtn" onclick="timerStart()">▶️ Start</button>
-        <button class="timer-btn pause" id="timerPauseBtn" onclick="timerPause()">⏸️ Pause</button>
+        <button class="timer-btn start" onclick="timerStart()">▶️ Start</button>
+        <button class="timer-btn pause" onclick="timerPause()">⏸️ Pause</button>
       </div>
       <div class="timer-row">
         <button class="timer-btn adjust" onclick="timerAdjust(-30)">−30s</button>
@@ -347,7 +374,8 @@
 
     <div class="panel">
       <h2>🔄 Controls</h2>
-      <button class="action-btn switch" onclick="switchTurn()">🔄 Switch Turn</button>
+      <button class="action-btn switch" id="switchTurnBtn" onclick="switchTurn()">🔄 Switch Turn</button>
+      <button class="action-btn endgame" id="endGameBtn" onclick="endGameNow()">🏆 End Game Now</button>
       <button class="action-btn warning" onclick="backToSetup()">🛠️ Back to Setup</button>
       <button class="action-btn danger" onclick="resetGame()">🔄 Reset Game</button>
     </div>
@@ -374,7 +402,12 @@
     let selectedDice = null;
     let selectedPieceIdx = null;
 
-    // === Timer (mirrored from display) ===
+    // === Game flow tracking ===
+    let firstMover = null;
+    let timeUpReached = false;
+    let finalTurnPending = false;
+    let gameLocked = false;
+
     let timerSeconds = 15 * 60;
     let timerRunning = false;
     let timerInterval = null;
@@ -408,6 +441,11 @@
           timerRunning = false;
           clearInterval(timerInterval);
           timerInterval = null;
+          // Time-up: enable final-turn UI locally
+          if (!timeUpReached) {
+            timeUpReached = true;
+            handleTimeUp();
+          }
         }
         renderTimerLocal();
       }, 1000);
@@ -428,6 +466,7 @@
       timerRunning = false;
       if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
       timerSeconds = 15 * 60;
+      timeUpReached = false;
       renderTimerLocal();
       if (conn && conn.open) conn.send({ type: 'timerReset', seconds: 900 });
     }
@@ -436,6 +475,63 @@
       timerSeconds = Math.max(0, Math.min(60 * 60, timerSeconds + delta));
       renderTimerLocal();
       if (conn && conn.open) conn.send({ type: 'timerAdjust', delta: delta });
+    }
+
+    // === Game flow logic ===
+    function handleTimeUp() {
+      if (firstMover === 'A') {
+        finalTurnPending = true;
+        currentTurn = 'B';
+        updateTurnDisplay();
+        updateGameStatusBanner();
+        renderPieceSelector();
+      } else if (firstMover === 'B') {
+        finalTurnPending = true;
+        currentTurn = 'A';
+        updateTurnDisplay();
+        updateGameStatusBanner();
+        renderPieceSelector();
+      } else {
+        // No one moved — just lock
+        gameLocked = true;
+        updateGameStatusBanner();
+      }
+    }
+
+    function updateGameStatusBanner() {
+      const el = document.getElementById('gameStatusBanner');
+      el.classList.remove('hidden', 'final-turn', 'game-over');
+      if (gameLocked) {
+        el.textContent = '🏆 Game Over — Locked';
+        el.classList.add('game-over');
+      } else if (finalTurnPending) {
+        const color = currentTurn === 'A' ? '🔵' : '🔴';
+        el.textContent = `🏁 FINAL TURN — Team ${currentTurn} ${color}`;
+        el.classList.add('final-turn');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+
+    function updateFirstMoverInfo() {
+      const el = document.getElementById('firstMoverInfo');
+      if (firstMover === null) {
+        el.textContent = 'First mover: not yet determined';
+      } else {
+        const color = firstMover === 'A' ? '🔵' : '🔴';
+        el.textContent = `First mover: ${color} Team ${firstMover}`;
+      }
+    }
+
+    function endGameNow() {
+      if (gameLocked) return;
+      if (!confirm('End the game now? Final scores will be locked.')) return;
+      gameLocked = true;
+      finalTurnPending = false;
+      timerPause();
+      updateGameStatusBanner();
+      renderPieceSelector();
+      if (conn && conn.open) conn.send({ type: 'endGameNow' });
     }
 
     // === Board helpers ===
@@ -626,13 +722,18 @@
       currentTurn = 'A';
       selectedPieceIdx = null;
       selectedDice = null;
-      document.getElementById('turnDisplay').textContent = "🔵 Team A's Turn";
-      document.getElementById('turnDisplay').className = 'team-a';
-      // Reset timer for new round
+      firstMover = null;
+      timeUpReached = false;
+      finalTurnPending = false;
+      gameLocked = false;
       timerSeconds = 15 * 60;
       timerRunning = false;
       if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      document.getElementById('turnDisplay').textContent = "🔵 Team A's Turn";
+      document.getElementById('turnDisplay').className = 'team-a';
       renderTimerLocal();
+      updateGameStatusBanner();
+      updateFirstMoverInfo();
       switchPhase('playing');
       updateCheatSheet();
       renderPieceSelector();
@@ -661,6 +762,17 @@
       switchPhase('setup');
     }
 
+    function updateTurnDisplay() {
+      const turnEl = document.getElementById('turnDisplay');
+      if (currentTurn === 'A') {
+        turnEl.textContent = "🔵 Team A's Turn";
+        turnEl.className = 'team-a';
+      } else {
+        turnEl.textContent = "🔴 Team B's Turn";
+        turnEl.className = 'team-b';
+      }
+    }
+
     function renderPieceSelector() {
       const container = document.getElementById('pieceSelector');
       container.innerHTML = '';
@@ -672,14 +784,19 @@
         btn.className = `piece-btn ${teamClass}`;
         if (selectedPieceIdx === idx) btn.classList.add('selected');
         if (pos === 25) btn.classList.add('at-goal');
+        if (gameLocked) btn.disabled = true;
         btn.innerHTML = `<span class="piece-id">${color}${PIECE_NUMS[idx]}</span> @ Cell ${pos}`;
         btn.onclick = () => selectPiece(idx);
         container.appendChild(btn);
       });
+      // Disable switch turn during final turn
+      document.getElementById('switchTurnBtn').disabled = finalTurnPending || gameLocked;
+      document.getElementById('endGameBtn').disabled = gameLocked;
       updateMoveBtn();
     }
 
     function selectPiece(idx) {
+      if (gameLocked) return;
       if (teamPieces[currentTurn][idx] === 25) return;
       selectedPieceIdx = idx;
       renderPieceSelector();
@@ -687,6 +804,7 @@
     }
 
     function selectDice(value) {
+      if (gameLocked) return;
       selectedDice = value;
       document.querySelectorAll('.dice-btn').forEach(btn => {
         btn.classList.toggle('selected', parseInt(btn.dataset.value) === value);
@@ -697,26 +815,42 @@
 
     function updateMoveBtn() {
       const moveBtn = document.getElementById('moveBtn');
-      moveBtn.disabled = !(selectedPieceIdx !== null && selectedDice);
-      if (selectedPieceIdx !== null && selectedDice) {
+      moveBtn.disabled = gameLocked || !(selectedPieceIdx !== null && selectedDice);
+      if (gameLocked) {
+        moveBtn.textContent = '🔒 Game Locked';
+      } else if (selectedPieceIdx !== null && selectedDice) {
         const color = currentTurn === 'A' ? '🔵' : '🔴';
-        moveBtn.textContent = `▶️ Move ${color}${PIECE_NUMS[selectedPieceIdx]} by ${selectedDice}`;
+        const label = finalTurnPending ? '🏁 FINAL Move' : '▶️ Move';
+        moveBtn.textContent = `${label} ${color}${PIECE_NUMS[selectedPieceIdx]} by ${selectedDice}`;
       } else {
         moveBtn.textContent = '▶️ Select piece + dice';
       }
     }
 
     function sendMove() {
+      if (gameLocked) return;
       if (selectedPieceIdx === null || !selectedDice || !conn || !conn.open) return;
       teamPieces[currentTurn][selectedPieceIdx] = Math.min(
         teamPieces[currentTurn][selectedPieceIdx] + selectedDice, 25
       );
+      // Record first mover locally
+      if (firstMover === null) {
+        firstMover = currentTurn;
+        updateFirstMoverInfo();
+      }
       conn.send({
         type: 'movePiece',
         team: currentTurn,
         pieceIdx: selectedPieceIdx,
         dice: selectedDice
       });
+      // If this was the final turn, lock immediately on GM side
+      if (finalTurnPending) {
+        finalTurnPending = false;
+        gameLocked = true;
+        timerPause();
+        updateGameStatusBanner();
+      }
       selectedDice = null;
       selectedPieceIdx = null;
       document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
@@ -725,15 +859,9 @@
     }
 
     function switchTurn() {
+      if (gameLocked || finalTurnPending) return;
       currentTurn = currentTurn === 'A' ? 'B' : 'A';
-      const turnEl = document.getElementById('turnDisplay');
-      if (currentTurn === 'A') {
-        turnEl.textContent = "🔵 Team A's Turn";
-        turnEl.className = 'team-a';
-      } else {
-        turnEl.textContent = "🔴 Team B's Turn";
-        turnEl.className = 'team-b';
-      }
+      updateTurnDisplay();
       selectedPieceIdx = null;
       selectedDice = null;
       document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
@@ -750,9 +878,15 @@
       currentTurn = 'A';
       selectedDice = null;
       selectedPieceIdx = null;
+      firstMover = null;
+      timeUpReached = false;
+      finalTurnPending = false;
+      gameLocked = false;
       timerSeconds = 15 * 60;
       timerRunning = false;
       if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      updateGameStatusBanner();
+      updateFirstMoverInfo();
       switchPhase('setup');
       selectTeam('A');
       selectTool('snake');
