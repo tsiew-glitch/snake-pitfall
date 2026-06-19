@@ -666,7 +666,7 @@
           state.phase = 'playing';
           if (msg.items) state.items = msg.items;
           state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
-     ();
+          renderRevealedItems();
           updatePhase();
           break;
         case 'setupMode':
