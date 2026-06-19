@@ -29,21 +29,13 @@
     .connected { background: #4caf50; }
     .error { background: #f44336; }
 
-    /* === Phase Toggle === */
-    #phaseToggle {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 12px;
-    }
+    #phaseToggle { display: flex; gap: 4px; margin-bottom: 12px; }
     .phase-tab {
-      flex: 1;
-      padding: 10px;
+      flex: 1; padding: 10px;
       border: 2px solid #4a90e2;
       background: transparent;
-      color: white;
-      border-radius: 8px;
-      font-size: 1em;
-      font-weight: bold;
+      color: white; border-radius: 8px;
+      font-size: 1em; font-weight: bold;
       cursor: pointer;
     }
     .phase-tab.active { background: #4a90e2; }
@@ -55,23 +47,14 @@
       margin-bottom: 10px;
     }
     .panel h2 { text-align: center; margin: 0 0 10px; font-size: 1em; opacity: 0.9; }
-    .panel.hidden { display: none; }
 
-    /* === Setup Phase === */
-    #teamSelector {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
+    #teamSelector { display: flex; gap: 6px; margin-bottom: 10px; }
     .team-btn {
-      flex: 1;
-      padding: 14px;
+      flex: 1; padding: 14px;
       border: 2px solid;
       background: transparent;
-      color: white;
-      border-radius: 8px;
-      font-size: 1.1em;
-      font-weight: bold;
+      color: white; border-radius: 8px;
+      font-size: 1.1em; font-weight: bold;
       cursor: pointer;
     }
     .team-btn.team-a-btn { border-color: #4a90e2; }
@@ -79,20 +62,13 @@
     .team-btn.team-b-btn { border-color: #e74c3c; }
     .team-btn.team-b-btn.active { background: #e74c3c; }
 
-    #toolSelector {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
+    #toolSelector { display: flex; gap: 6px; margin-bottom: 10px; }
     .tool-btn {
-      flex: 1;
-      padding: 12px 8px;
+      flex: 1; padding: 12px 8px;
       border: 2px solid transparent;
       background: #2c3e50;
-      color: white;
-      border-radius: 8px;
-      font-size: 0.95em;
-      font-weight: bold;
+      color: white; border-radius: 8px;
+      font-size: 0.95em; font-weight: bold;
       cursor: pointer;
     }
     .tool-btn.snake { background: #27ae60; }
@@ -101,7 +77,6 @@
     .tool-btn.pitfall.active { border-color: white; box-shadow: 0 0 10px rgba(192, 57, 43, 0.8); }
     .tool-btn.treasure { background: #d4af37; color: #1a1f3a; }
     .tool-btn.treasure.active { border-color: white; box-shadow: 0 0 10px rgba(212, 175, 55, 0.8); }
-    .tool-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
     #quotaDisplay {
       text-align: center;
@@ -112,7 +87,6 @@
       margin-bottom: 10px;
     }
 
-    /* === Setup Board === */
     #setupBoard {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -123,14 +97,10 @@
     .setup-cell {
       background: #34495e;
       border-radius: 6px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7em;
-      font-weight: bold;
-      position: relative;
-      cursor: pointer;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-size: 0.7em; font-weight: bold;
+      position: relative; cursor: pointer;
       transition: all 0.15s;
       min-height: 50px;
     }
@@ -156,15 +126,8 @@
     }
     .setup-cell:active:not(.protected) { transform: scale(0.95); }
     .cell-num { opacity: 0.6; font-size: 0.85em; }
-    .cell-items {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2px;
-      margin-top: 2px;
-    }
-    .item-tag {
-      font-size: 0.85em;
-    }
+    .cell-items { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+    .item-tag { font-size: 0.85em; }
 
     #placedList {
       font-size: 0.85em;
@@ -176,7 +139,6 @@
       margin-bottom: 8px;
     }
 
-    /* === Play Phase === */
     #turnDisplay {
       text-align: center;
       font-size: 1.4em;
@@ -233,6 +195,15 @@
     }
     .team-a-color { color: #4a90e2; font-weight: bold; }
     .team-b-color { color: #e74c3c; font-weight: bold; }
+
+    #cheatSheet {
+      font-size: 0.85em;
+      padding: 8px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
@@ -244,7 +215,6 @@
     <button class="phase-tab" id="playTab" onclick="switchPhase('playing')">🎲 Play</button>
   </div>
 
-  <!-- ============== SETUP PHASE ============== -->
   <div id="setupPhase">
     <div class="panel">
       <h2>Placing items for:</h2>
@@ -281,7 +251,6 @@
     </div>
   </div>
 
-  <!-- ============== PLAY PHASE ============== -->
   <div id="playPhase" style="display:none;">
     <div id="turnDisplay" class="team-a">🔵 Team A's Turn</div>
 
@@ -300,6 +269,11 @@
     </div>
 
     <div class="panel">
+      <h2>🔍 GM Cheat Sheet (hidden items)</h2>
+      <div id="cheatSheet">No items</div>
+    </div>
+
+    <div class="panel">
       <h2>🔄 Controls</h2>
       <button class="action-btn switch" onclick="switchTurn()">🔄 Switch Turn</button>
       <button class="action-btn warning" onclick="backToSetup()">🛠️ Back to Setup</button>
@@ -313,7 +287,6 @@
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
-    // ===== Global State =====
     const DISPLAY_ID = 'snake-pitfall-2026-display';
     let conn = null;
     let phase = 'setup';
@@ -332,7 +305,6 @@
     let teamBPos = 1;
     let selectedDice = null;
 
-    // ===== Helpers =====
     function getCellCoords(cellNum) {
       const rowFromBottom = Math.floor((cellNum - 1) / 5);
       const visualRow = 4 - rowFromBottom;
@@ -365,15 +337,9 @@
       return target;
     }
 
-    function getTotalCount(team, type) {
-      return items[team][type].length;
-    }
+    function getTotalCount(team, type) { return items[team][type].length; }
+    function isProtected(cellNum) { return cellNum === 1 || cellNum === 25; }
 
-    function isProtected(cellNum) {
-      return cellNum === 1 || cellNum === 25;
-    }
-
-    // ===== Render Setup Board =====
     function renderSetupBoard() {
       const board = document.getElementById('setupBoard');
       board.innerHTML = '';
@@ -387,9 +353,7 @@
           if (isProtected(cellNum)) div.classList.add('protected');
           if (sourceCell === cellNum) div.classList.add('source-selected');
           if (validTargets.includes(cellNum)) div.classList.add('valid-target');
-
-          const cellItemsHtml = getCellItemsHtml(cellNum);
-          div.innerHTML = `<div class="cell-num">${cellNum}</div>${cellItemsHtml}`;
+          div.innerHTML = `<div class="cell-num">${cellNum}</div>${getCellItemsHtml(cellNum)}`;
           div.onclick = () => onCellTap(cellNum);
           board.appendChild(div);
         }
@@ -420,10 +384,9 @@
         showHint('❌ Cell 1 and 25 cannot hold items');
         return;
       }
-
       if (currentTool === 'treasure') {
         if (getTotalCount(currentTeam, 'treasures') >= 3) {
-          showHint('❌ Max 3 treasures for this team');
+          showHint('❌ Max 3 treasures');
           return;
         }
         items[currentTeam].treasures.push(cellNum);
@@ -434,17 +397,15 @@
         if (navigator.vibrate) navigator.vibrate(30);
         return;
       }
-
       if (sourceCell === null) {
         if (currentTool === 'snake' && getTotalCount(currentTeam, 'snakes') >= 3) {
-          showHint('❌ Max 3 snakes for this team');
+          showHint('❌ Max 3 snakes');
           return;
         }
         if (currentTool === 'pitfall' && getTotalCount(currentTeam, 'pitfalls') >= 3) {
-          showHint('❌ Max 3 pitfalls for this team');
+          showHint('❌ Max 3 pitfalls');
           return;
         }
-
         let targets;
         if (currentTool === 'snake') {
           targets = getSnakeTargets(cellNum);
@@ -452,14 +413,12 @@
           const t = getPitfallTarget(cellNum);
           targets = t ? [t] : [];
         }
-
         if (targets.length === 0) {
           showHint(currentTool === 'snake'
-            ? '❌ No valid diagonal-up target from this cell'
-            : '❌ No valid vertical-down target from this cell');
+            ? '❌ No valid diagonal-up target'
+            : '❌ No valid vertical-down target');
           return;
         }
-
         sourceCell = cellNum;
         validTargets = targets;
         showHint(`Tap a green cell to set ${currentTool === 'snake' ? '🟢 snake' : '🔴 pitfall'} destination`);
@@ -474,18 +433,16 @@
           return;
         }
         if (!validTargets.includes(cellNum)) {
-          showHint('❌ Not a valid target. Tap a green cell.');
+          showHint('❌ Tap a green cell');
           return;
         }
-
         if (currentTool === 'snake') {
           items[currentTeam].snakes.push({ from: sourceCell, to: cellNum });
-          showHint(`🟢 Snake placed: ${sourceCell} ↑ ${cellNum}`);
+          showHint(`🟢 Snake: ${sourceCell} ↑ ${cellNum}`);
         } else {
           items[currentTeam].pitfalls.push({ from: sourceCell, to: cellNum });
-          showHint(`🔴 Pitfall placed: ${sourceCell} ↓ ${cellNum}`);
+          showHint(`🔴 Pitfall: ${sourceCell} ↓ ${cellNum}`);
         }
-
         sourceCell = null;
         validTargets = [];
         renderSetupBoard();
@@ -495,9 +452,7 @@
       }
     }
 
-    function showHint(text) {
-      document.getElementById('hint').textContent = text;
-    }
+    function showHint(text) { document.getElementById('hint').textContent = text; }
 
     function updateQuota() {
       const t = items[currentTeam];
@@ -518,6 +473,21 @@
         }
       }
       document.getElementById('placedList').innerHTML = html || 'No items placed yet';
+    }
+
+    function updateCheatSheet() {
+      let html = '';
+      for (const team of ['A', 'B']) {
+        const color = team === 'A' ? '🔵' : '🔴';
+        const t = items[team];
+        if (t.snakes.length || t.pitfalls.length || t.treasures.length) {
+          html += `<div><strong>${color} Team ${team}:</strong></div>`;
+          t.snakes.forEach(s => html += `<div>&nbsp;🟢 ${s.from}→${s.to}</div>`);
+          t.pitfalls.forEach(p => html += `<div>&nbsp;🔴 ${p.from}→${p.to}</div>`);
+          if (t.treasures.length) html += `<div>&nbsp;💎 ${t.treasures.join(', ')}</div>`;
+        }
+      }
+      document.getElementById('cheatSheet').innerHTML = html || 'No items';
     }
 
     function selectTeam(team) {
@@ -543,16 +513,10 @@
 
     function undoLast() {
       const t = items[currentTeam];
-      if (currentTool === 'snake' && t.snakes.length > 0) {
-        t.snakes.pop();
-      } else if (currentTool === 'pitfall' && t.pitfalls.length > 0) {
-        t.pitfalls.pop();
-      } else if (currentTool === 'treasure' && t.treasures.length > 0) {
-        t.treasures.pop();
-      } else {
-        showHint('Nothing to undo for this tool/team');
-        return;
-      }
+      if (currentTool === 'snake' && t.snakes.length > 0) t.snakes.pop();
+      else if (currentTool === 'pitfall' && t.pitfalls.length > 0) t.pitfalls.pop();
+      else if (currentTool === 'treasure' && t.treasures.length > 0) t.treasures.pop();
+      else { showHint('Nothing to undo'); return; }
       sourceCell = null;
       validTargets = [];
       renderSetupBoard();
@@ -562,14 +526,13 @@
     }
 
     function clearTeam() {
-      if (!confirm(`Clear all items placed by Team ${currentTeam}?`)) return;
+      if (!confirm(`Clear all items by Team ${currentTeam}?`)) return;
       items[currentTeam] = { snakes: [], pitfalls: [], treasures: [] };
       sourceCell = null;
       validTargets = [];
       renderSetupBoard();
       updateQuota();
       updatePlacedList();
-      showHint(`Cleared Team ${currentTeam}`);
     }
 
     function startGame() {
@@ -580,11 +543,13 @@
       document.getElementById('posB').textContent = '1';
       document.getElementById('turnDisplay').textContent = "🔵 Team A's Turn";
       document.getElementById('turnDisplay').className = 'team-a';
-
       switchPhase('playing');
+      updateCheatSheet();
       if (conn && conn.open) {
-        conn.send({ type: 'startGame' });
         conn.send({ type: 'reset' });
+        setTimeout(() => {
+          conn.send({ type: 'startGame', items: items });
+        }, 100);
       }
     }
 
@@ -594,13 +559,13 @@
       document.getElementById('playPhase').style.display = (p === 'playing') ? 'block' : 'none';
       document.getElementById('setupTab').classList.toggle('active', p === 'setup');
       document.getElementById('playTab').classList.toggle('active', p === 'playing');
-      if (conn && conn.open) {
-        conn.send({ type: p === 'setup' ? 'setupMode' : 'startGame' });
+      if (p === 'setup' && conn && conn.open) {
+        conn.send({ type: 'setupMode' });
       }
     }
 
     function backToSetup() {
-      if (!confirm('Go back to setup? Current play progress will be lost.')) return;
+      if (!confirm('Go back to setup? Play progress lost.')) return;
       switchPhase('setup');
     }
 
@@ -618,10 +583,10 @@
       conn.send({ type: 'dice', value: selectedDice });
       if (currentTurn === 'A') {
         teamAPos = Math.min(teamAPos + selectedDice, 25);
-        document.getElementById('posA').textContent = teamAPos;
+        document.getElementById('posA').textContent = teamAPos + '*';
       } else {
         teamBPos = Math.min(teamBPos + selectedDice, 25);
-        document.getElementById('posB').textContent = teamBPos;
+        document.getElementById('posB').textContent = teamBPos + '*';
       }
       selectedDice = null;
       document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
@@ -660,7 +625,6 @@
       if (conn && conn.open) conn.send({ type: 'reset' });
     }
 
-    // ===== PeerJS =====
     const statusEl = document.getElementById('status');
     const peer = new Peer({ debug: 2 });
 
@@ -683,7 +647,6 @@
       statusEl.className = 'error';
     });
 
-    // ===== Initial Render =====
     renderSetupBoard();
     updateQuota();
     updatePlacedList();
