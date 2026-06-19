@@ -5,90 +5,304 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Snake & Pitfall — Display</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0a0e27;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f4a 100%);
       color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin: 10px 0;
+      text-shadow: 0 2px 10px rgba(74, 144, 226, 0.5);
+    }
+    #topBar {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+      font-size: 1.3em;
+      margin-bottom: 20px;
+    }
+    #status {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    .waiting { background: #ff9800; }
+    .connected { background: #4caf50; }
+
+    /* === Game Board === */
+    #board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      gap: 6px;
+      width: min(70vh, 90vw);
+      aspect-ratio: 1 / 1;
+      background: rgba(255,255,255,0.05);
+      padding: 10px;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+    .cell {
+      background: linear-gradient(145deg, #2a3568, #1e2850);
+      border-radius: 10px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    h1 { font-size: 3em; margin-bottom: 10px; }
-    #status {
       font-size: 1.5em;
-      padding: 10px 20px;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-    .waiting { background: #ff9800; }
-    .connected { background: #4caf50; }
-    #log {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 20px;
-      border-radius: 8px;
-      width: 80%;
-      max-width: 800px;
-      min-height: 200px;
-      font-family: 'Courier New', monospace;
-      font-size: 1.2em;
-      overflow-y: auto;
-    }
-    .log-entry {
-      padding: 8px;
-      margin: 5px 0;
-      background: rgba(76, 175, 80, 0.2);
-      border-left: 4px solid #4caf50;
-      border-radius: 4px;
-    }
-    #roomCode {
-      font-size: 2em;
-      background: #ffd700;
-      color: #0a0e27;
-      padding: 10px 30px;
-      border-radius: 8px;
-      margin: 10px 0;
       font-weight: bold;
-      letter-spacing: 3px;
+      position: relative;
+      transition: background 0.3s;
+    }
+    .cell.start {
+      background: linear-gradient(145deg, #2d7a3d, #1f5a2c);
+    }
+    .cell.goal {
+      background: linear-gradient(145deg, #d4af37, #b8941f);
+      color: #0a0e27;
+    }
+    .cell-number {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-size: 0.6em;
+      opacity: 0.7;
+    }
+    .pieces {
+      display: flex;
+      gap: 4px;
+      font-size: 1.5em;
+      z-index: 2;
+    }
+    .piece {
+      transition: transform 0.3s;
+    }
+    .piece.moving {
+      transform: scale(1.3);
+      animation: bounce 0.3s ease;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: scale(1.3) translateY(0); }
+      50% { transform: scale(1.4) translateY(-6px); }
+    }
+    .cell.highlight {
+      background: linear-gradient(145deg, #f39c12, #d68910) !important;
+      animation: flash 0.4s ease;
+    }
+    @keyframes flash {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); box-shadow: 0 0 20px #f39c12; }
+    }
+
+    /* === Score Panel === */
+    #scorePanel {
+      display: flex;
+      gap: 40px;
+      margin-top: 25px;
+      font-size: 1.4em;
+    }
+    .team-score {
+      padding: 12px 24px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.3s;
+    }
+    .team-score.active {
+      background: rgba(255, 215, 0, 0.2);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+      transform: scale(1.05);
+    }
+    .team-a-color { color: #4a90e2; }
+    .team-b-color { color: #e74c3c; }
+
+    #diceDisplay {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 8em;
+      background: white;
+      color: #0a0e27;
+      width: 200px;
+      height: 200px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      transition: transform 0.3s ease;
+      z-index: 100;
+    }
+    #diceDisplay.show {
+      transform: translate(-50%, -50%) scale(1);
     }
   </style>
 </head>
 <body>
-  <h1>🎲 Snake & Pitfall — Display</h1>
-  <div>Room Code: <span id="roomCode">SNAKE-PITFALL-2026</span></div>
-  <div id="status" class="waiting">⏳ Waiting for GM to connect...</div>
-
-  <div id="log">
-    <div style="opacity:0.5;">Messages from GM will appear here →</div>
+  <h1>🎲 Snake & Pitfall</h1>
+  <div id="topBar">
+    <div>Turn: <span id="turnIndicator" class="team-a-color">🔵 Team A</span></div>
+    <div id="status" class="waiting">⏳ Waiting for GM...</div>
   </div>
 
-  <!-- PeerJS library -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <div id="board"></div>
 
+  <div id="scorePanel">
+    <div class="team-score active" id="teamAPanel">
+      <span class="team-a-color">🔵 Team A</span>
+      <span>Cell: <span id="teamAPos">1</span></span>
+    </div>
+    <div class="team-score" id="teamBPanel">
+      <span class="team-b-color">🔴 Team B</span>
+      <span>Cell: <span id="teamBPos">1</span></span>
+    </div>
+  </div>
+
+  <div id="diceDisplay">🎲</div>
+
+  https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js
   <script>
-    const ROOM_ID = 'snake-pitfall-2026-display';  // fixed ID, both files agree
-    const statusEl = document.getElementById('status');
-    const logEl = document.getElementById('log');
+    // === Game State ===
+    const state = {
+      teamA: { position: 1 },
+      teamB: { position: 1 },
+      currentTurn: 'A'
+    };
 
-    // Create peer with fixed ID so GM knows where to connect
+    // === Board Setup (Zigzag layout) ===
+    // Row 5 (top): 21→25 left to right
+    // Row 4: 20→16 right to left
+    // Row 3: 11→15 left to right
+    // Row 2: 10→6 right to left
+    // Row 1 (bottom): 1→5 left to right
+    function getCellNumberAt(visualRow, visualCol) {
+      // visualRow 0 = top of board (row containing 21-25)
+      // We want bottom row (visualRow 4) to be cells 1-5
+      const rowFromBottom = 4 - visualRow;
+      const rowStart = rowFromBottom * 5 + 1;
+      // Even rows from bottom go left-to-right, odd rows right-to-left
+      if (rowFromBottom % 2 === 0) {
+        return rowStart + visualCol;
+      } else {
+        return rowStart + (4 - visualCol);
+      }
+    }
+
+    const board = document.getElementById('board');
+    const cellElements = {};  // cellNumber -> DOM element
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        const cellNum = getCellNumberAt(r, c);
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        if (cellNum === 1) cell.classList.add('start');
+        if (cellNum === 25) cell.classList.add('goal');
+        cell.innerHTML = `
+          <div class="cell-number">${cellNum}</div>
+          <div class="pieces" id="pieces-${cellNum}"></div>
+        `;
+        board.appendChild(cell);
+        cellElements[cellNum] = cell;
+      }
+    }
+
+    // === Render Pieces ===
+    function renderPieces() {
+      // Clear all pieces
+      for (let i = 1; i <= 25; i++) {
+        document.getElementById(`pieces-${i}`).innerHTML = '';
+      }
+      // Place team A
+      const aSlot = document.getElementById(`pieces-${state.teamA.position}`);
+      aSlot.innerHTML += `<span class="piece" id="pieceA">🔵</span>`;
+      // Place team B
+      const bSlot = document.getElementById(`pieces-${state.teamB.position}`);
+      bSlot.innerHTML += `<span class="piece" id="pieceB">🔴</span>`;
+
+      document.getElementById('teamAPos').textContent = state.teamA.position;
+      document.getElementById('teamBPos').textContent = state.teamB.position;
+    }
+
+    // === Animated Step-by-Step Movement ===
+    async function moveTeam(team, steps) {
+      const startPos = state[`team${team}`].position;
+      let currentPos = startPos;
+      for (let i = 0; i < steps; i++) {
+        currentPos = Math.min(currentPos + 1, 25);
+        state[`team${team}`].position = currentPos;
+        renderPieces();
+        // Highlight the cell briefly
+        const cell = cellElements[currentPos];
+        cell.classList.add('highlight');
+        await sleep(350);
+        cell.classList.remove('highlight');
+        if (currentPos === 25) break;
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    // === Dice Animation ===
+    async function showDice(value) {
+      const diceEl = document.getElementById('diceDisplay');
+      const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄'];
+      diceEl.textContent = diceFaces[value - 1] || '🎲';
+      diceEl.classList.add('show');
+      await sleep(1200);
+      diceEl.classList.remove('show');
+      await sleep(300);
+    }
+
+    // === Update Turn Indicator ===
+    function updateTurn() {
+      const indicator = document.getElementById('turnIndicator');
+      const aPanel = document.getElementById('teamAPanel');
+      const bPanel = document.getElementById('teamBPanel');
+      if (state.currentTurn === 'A') {
+        indicator.innerHTML = '🔵 Team A';
+        indicator.className = 'team-a-color';
+        aPanel.classList.add('active');
+        bPanel.classList.remove('active');
+      } else {
+        indicator.innerHTML = '🔴 Team B';
+        indicator.className = 'team-b-color';
+        bPanel.classList.add('active');
+        aPanel.classList.remove('active');
+      }
+    }
+
+    // Initial render
+    renderPieces();
+    updateTurn();
+
+    // === PeerJS Connection ===
+    const ROOM_ID = 'snake-pitfall-2026-display';
+    const statusEl = document.getElementById('status');
     const peer = new Peer(ROOM_ID, { debug: 2 });
 
-    peer.on('open', (id) => {
-      console.log('Display peer ready, ID:', id);
-      statusEl.textContent = '✅ Display ready — waiting for GM iPad';
+    peer.on('open', () => {
+      statusEl.textContent = '✅ Ready — waiting for GM';
     });
 
     peer.on('connection', (conn) => {
-      console.log('GM connected!');
       statusEl.textContent = '🟢 GM Connected';
       statusEl.className = 'connected';
 
-      conn.on('data', (msg) => {
+      conn.on('data', async (msg) => {
         console.log('Received:', msg);
-        addLog(`📨 ${JSON.stringify(msg)}`);
+        await handleAction(msg);
       });
 
       conn.on('close', () => {
@@ -98,15 +312,28 @@
     });
 
     peer.on('error', (err) => {
-      console.error('Peer error:', err);
-      statusEl.textContent = '❌ Error: ' + err.type;
+      statusEl.textContent = '❌ ' + err.type;
     });
 
-    function addLog(text) {
-      const entry = document.createElement('div');
-      entry.className = 'log-entry';
-      entry.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
-      logEl.prepend(entry);
+    // === Handle GM Actions ===
+    async function handleAction(msg) {
+      switch (msg.type) {
+        case 'dice':
+          await showDice(msg.value);
+          await moveTeam(state.currentTurn, msg.value);
+          break;
+        case 'switchTurn':
+          state.currentTurn = state.currentTurn === 'A' ? 'B' : 'A';
+          updateTurn();
+          break;
+        case 'reset':
+          state.teamA.position = 1;
+          state.teamB.position = 1;
+          state.currentTurn = 'A';
+          renderPieces();
+          updateTurn();
+          break;
+      }
     }
   </script>
 </body>
