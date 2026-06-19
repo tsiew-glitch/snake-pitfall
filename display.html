@@ -37,7 +37,6 @@
     .waiting { background: #ff9800; }
     .connected { background: #4caf50; }
 
-    /* === Phase Banner === */
     #phaseBanner {
       font-size: 2em;
       padding: 30px 60px;
@@ -53,7 +52,6 @@
     }
     #phaseBanner.hidden { display: none; }
 
-    /* === Game Board === */
     #board {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -74,38 +72,62 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 1.5em;
+      font-size: 1.3em;
       font-weight: bold;
       position: relative;
       transition: background 0.3s;
+      overflow: hidden;
     }
     .cell.start { background: linear-gradient(145deg, #2d7a3d, #1f5a2c); }
     .cell.goal { background: linear-gradient(145deg, #d4af37, #b8941f); color: #0a0e27; }
     .cell-number {
       position: absolute;
-      top: 6px;
-      left: 8px;
-      font-size: 0.6em;
+      top: 4px;
+      left: 6px;
+      font-size: 0.55em;
       opacity: 0.7;
     }
     .pieces {
       display: flex;
-      gap: 4px;
-      font-size: 1.5em;
-      z-index: 2;
+      gap: 3px;
+      font-size: 1.2em;
+      z-index: 3;
+      flex-wrap: wrap;
+      justify-content: center;
     }
-    .piece.moving { animation: bounce 0.3s ease; }
-    @keyframes bounce {
-      0%, 100% { transform: scale(1) translateY(0); }
-      50% { transform: scale(1.2) translateY(-6px); }
+    .revealed-items {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      font-size: 0.7em;
+      display: flex;
+      gap: 2px;
+      z-index: 1;
     }
     .cell.highlight {
       background: linear-gradient(145deg, #f39c12, #d68910) !important;
       animation: flash 0.4s ease;
     }
+    .cell.snake-reveal {
+      background: linear-gradient(145deg, #27ae60, #229954) !important;
+      animation: revealFlash 0.6s ease;
+    }
+    .cell.pitfall-reveal {
+      background: linear-gradient(145deg, #c0392b, #a93226) !important;
+      animation: revealFlash 0.6s ease;
+    }
+    .cell.treasure-reveal {
+      background: linear-gradient(145deg, #d4af37, #f1c40f) !important;
+      animation: revealFlash 0.6s ease;
+    }
     @keyframes flash {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); box-shadow: 0 0 20px #f39c12; }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes revealFlash {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.3); box-shadow: 0 0 30px rgba(255,255,255,0.9); }
+      100% { transform: scale(1); }
     }
 
     /* === Score Panel === */
@@ -113,16 +135,15 @@
       display: flex;
       gap: 40px;
       margin-top: 25px;
-      font-size: 1.4em;
+      font-size: 1.2em;
     }
     #scorePanel.hidden { display: none; }
     .team-score {
-      padding: 12px 24px;
+      padding: 14px 24px;
       border-radius: 12px;
       background: rgba(255,255,255,0.08);
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      min-width: 200px;
+      text-align: center;
       transition: all 0.3s;
     }
     .team-score.active {
@@ -130,8 +151,33 @@
       box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
       transform: scale(1.05);
     }
+    .team-score .label { font-size: 1.2em; font-weight: bold; margin-bottom: 4px; }
+    .team-score .total { font-size: 1.8em; font-weight: bold; margin-top: 6px; }
     .team-a-color { color: #4a90e2; }
     .team-b-color { color: #e74c3c; }
+    .breakdown { font-size: 0.8em; opacity: 0.8; }
+
+    /* === Banners === */
+    #bigBanner {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 3em;
+      background: white;
+      color: #0a0e27;
+      padding: 30px 60px;
+      border-radius: 20px;
+      font-weight: bold;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      transition: transform 0.4s ease;
+      z-index: 200;
+      text-align: center;
+    }
+    #bigBanner.show { transform: translate(-50%, -50%) scale(1); }
+    #bigBanner.snake { background: #27ae60; color: white; }
+    #bigBanner.pitfall { background: #c0392b; color: white; }
+    #bigBanner.treasure { background: #d4af37; color: #1a1f3a; }
+    #bigBanner.skip { background: #9b59b6; color: white; }
 
     #diceDisplay {
       position: fixed;
@@ -166,28 +212,44 @@
 
   <div id="scorePanel" class="hidden">
     <div class="team-score active" id="teamAPanel">
-      <span class="team-a-color">🔵 Team A</span>
-      <span>Cell: <span id="teamAPos">1</span></span>
+      <div class="label team-a-color">🔵 Team A</div>
+      <div>Cell: <span id="teamAPos">1</span></div>
+      <div class="breakdown">💎 <span id="teamATreasures">0</span> · Pieces: <span id="teamAPieceScore">1</span></div>
+      <div class="total">TOTAL: <span id="teamATotal">1</span></div>
     </div>
     <div class="team-score" id="teamBPanel">
-      <span class="team-b-color">🔴 Team B</span>
-      <span>Cell: <span id="teamBPos">1</span></span>
+      <div class="label team-b-color">🔴 Team B</div>
+      <div>Cell: <span id="teamBPos">1</span></div>
+      <div class="breakdown">💎 <span id="teamBTreasures">0</span> · Pieces: <span id="teamBPieceScore">1</span></div>
+      <div class="total">TOTAL: <span id="teamBTotal">1</span></div>
     </div>
   </div>
 
   <div id="diceDisplay">🎲</div>
+  <div id="bigBanner"></div>
 
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js
   <script>
     // === Game State ===
     const state = {
-      phase: 'setup',  // 'setup' | 'playing'
-      teamA: { position: 1 },
-      teamB: { position: 1 },
-      currentTurn: 'A'
+      phase: 'setup',
+      teamA: { position: 1, treasures: 0, skipNext: false },
+      teamB: { position: 1, treasures: 0, skipNext: false },
+      currentTurn: 'A',
+      // Items synced from GM
+      items: {
+        A: { snakes: [], pitfalls: [], treasures: [] },
+        B: { snakes: [], pitfalls: [], treasures: [] }
+      },
+      // What's been revealed (visible to audience)
+      revealed: {
+        snakes: new Set(),    // snake "from" cells revealed
+        pitfalls: new Set(),  // pitfall "from" cells revealed
+        treasures: new Set()  // treasures CLAIMED (gone)
+      }
     };
 
-    // === Board Setup (Zigzag layout) ===
+    // === Board Setup ===
     function getCellNumberAt(visualRow, visualCol) {
       const rowFromBottom = 4 - visualRow;
       const rowStart = rowFromBottom * 5 + 1;
@@ -210,6 +272,7 @@
         cell.innerHTML = `
           <div class="cell-number">${cellNum}</div>
           <div class="pieces" id="pieces-${cellNum}"></div>
+          <div class="revealed-items" id="items-${cellNum}"></div>
         `;
         board.appendChild(cell);
         cellElements[cellNum] = cell;
@@ -224,26 +287,77 @@
       aSlot.innerHTML += `<span class="piece" id="pieceA">🔵</span>`;
       const bSlot = document.getElementById(`pieces-${state.teamB.position}`);
       bSlot.innerHTML += `<span class="piece" id="pieceB">🔴</span>`;
-      document.getElementById('teamAPos').textContent = state.teamA.position;
-      document.getElementById('teamBPos').textContent = state.teamB.position;
+      updateScores();
     }
 
-    async function moveTeam(team, steps) {
-      const startPos = state[`team${team}`].position;
-      let currentPos = startPos;
-      for (let i = 0; i < steps; i++) {
-        currentPos = Math.min(currentPos + 1, 25);
-        state[`team${team}`].position = currentPos;
-        renderPieces();
-        const cell = cellElements[currentPos];
-        cell.classList.add('highlight');
-        await sleep(350);
-        cell.classList.remove('highlight');
-        if (currentPos === 25) break;
+    function renderRevealedItems() {
+      for (let i = 1; i <= 25; i++) {
+        document.getElementById(`items-${i}`).innerHTML = '';
       }
+      // Show all revealed snakes
+      state.revealed.snakes.forEach(fromCell => {
+        const item = findSnakeFrom(fromCell);
+        if (item) {
+          document.getElementById(`items-${fromCell}`).innerHTML += `<span>🟢↑${item.to}</span>`;
+        }
+      });
+      // Show all revealed pitfalls
+      state.revealed.pitfalls.forEach(fromCell => {
+        const item = findPitfallFrom(fromCell);
+        if (item) {
+          document.getElementById(`items-${fromCell}`).innerHTML += `<span>🔴↓${item.to}</span>`;
+        }
+      });
+    }
+
+    function findSnakeFrom(cellNum) {
+      for (const team of ['A', 'B']) {
+        const found = state.items[team].snakes.find(s => s.from === cellNum);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function findPitfallFrom(cellNum) {
+      for (const team of ['A', 'B']) {
+        const found = state.items[team].pitfalls.find(p => p.from === cellNum);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function isTreasureAt(cellNum) {
+      if (state.revealed.treasures.has(cellNum)) return false; // already claimed
+      for (const team of ['A', 'B']) {
+        if (state.items[team].treasures.includes(cellNum)) return true;
+      }
+      return false;
+    }
+
+    function updateScores() {
+      const aScore = state.teamA.position + (state.teamA.treasures * 25);
+      const bScore = state.teamB.position + (state.teamB.treasures * 25);
+      document.getElementById('teamAPos').textContent = state.teamA.position;
+      document.getElementById('teamBPos').textContent = state.teamB.position;
+      document.getElementById('teamATreasures').textContent = state.teamA.treasures;
+      document.getElementById('teamBTreasures').textContent = state.teamB.treasures;
+      document.getElementById('teamAPieceScore').textContent = state.teamA.position;
+      document.getElementById('teamBPieceScore').textContent = state.teamB.position;
+      document.getElementById('teamATotal').textContent = aScore;
+      document.getElementById('teamBTotal').textContent = bScore;
     }
 
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    async function showBanner(text, type, duration = 1500) {
+      const banner = document.getElementById('bigBanner');
+      banner.textContent = text;
+      banner.className = type;
+      banner.classList.add('show');
+      await sleep(duration);
+      banner.classList.remove('show');
+      await sleep(200);
+    }
 
     async function showDice(value) {
       const diceEl = document.getElementById('diceDisplay');
@@ -253,6 +367,102 @@
       await sleep(1200);
       diceEl.classList.remove('show');
       await sleep(300);
+    }
+
+    // === Step-by-step base movement (dice walk) ===
+    async function diceWalk(team, steps) {
+      let currentPos = state[`team${team}`].position;
+      for (let i = 0; i < steps; i++) {
+        currentPos = Math.min(currentPos + 1, 25);
+        state[`team${team}`].position = currentPos;
+        renderPieces();
+        const cell = cellElements[currentPos];
+        cell.classList.add('highlight');
+        await sleep(320);
+        cell.classList.remove('highlight');
+        if (currentPos === 25) break;
+      }
+      return currentPos;
+    }
+
+    // === Trigger chain handler ===
+    async function triggerChain(team, landedCell) {
+      const visitedCells = new Set([landedCell]);
+      let currentCell = landedCell;
+      let chainCount = 0;
+      const maxChain = 10; // safety limit
+
+      while (chainCount < maxChain) {
+        chainCount++;
+        let triggered = false;
+
+        // 1. Check treasure first
+        if (isTreasureAt(currentCell)) {
+          state.revealed.treasures.add(currentCell);
+          state[`team${team}`].treasures++;
+          const cell = cellElements[currentCell];
+          cell.classList.add('treasure-reveal');
+          await showBanner(`💎 TREASURE! Team ${team} +25 pts`, 'treasure', 1500);
+          cell.classList.remove('treasure-reveal');
+          renderRevealedItems();
+          updateScores();
+          // Treasure doesn't move piece, but other items might be on same cell
+        }
+
+        // 2. Check snake (up)
+        const snake = findSnakeFrom(currentCell);
+        if (snake) {
+          state.revealed.snakes.add(currentCell);
+          const cell = cellElements[currentCell];
+          cell.classList.add('snake-reveal');
+          await showBanner(`🟢 SNAKE! ${currentCell} ↑ ${snake.to}`, 'snake', 1400);
+          cell.classList.remove('snake-reveal');
+          renderRevealedItems();
+          // Move piece to snake top
+          state[`team${team}`].position = snake.to;
+          renderPieces();
+          cellElements[snake.to].classList.add('highlight');
+          await sleep(500);
+          cellElements[snake.to].classList.remove('highlight');
+          currentCell = snake.to;
+          triggered = true;
+          // Check loop
+          if (visitedCells.has(currentCell)) {
+            await showBanner(`🔄 LOOP! Team ${team} skips next turn`, 'skip', 2000);
+            state[`team${team}`].skipNext = true;
+            return;
+          }
+          visitedCells.add(currentCell);
+          continue; // re-check this new cell
+        }
+
+        // 3. Check pitfall (down)
+        const pitfall = findPitfallFrom(currentCell);
+        if (pitfall) {
+          state.revealed.pitfalls.add(currentCell);
+          const cell = cellElements[currentCell];
+          cell.classList.add('pitfall-reveal');
+          await showBanner(`🔴 PITFALL! ${currentCell} ↓ ${pitfall.to}`, 'pitfall', 1400);
+          cell.classList.remove('pitfall-reveal');
+          renderRevealedItems();
+          state[`team${team}`].position = pitfall.to;
+          renderPieces();
+          cellElements[pitfall.to].classList.add('highlight');
+          await sleep(500);
+          cellElements[pitfall.to].classList.remove('highlight');
+          currentCell = pitfall.to;
+          triggered = true;
+          if (visitedCells.has(currentCell)) {
+            await showBanner(`🔄 LOOP! Team ${team} skips next turn`, 'skip', 2000);
+            state[`team${team}`].skipNext = true;
+            return;
+          }
+          visitedCells.add(currentCell);
+          continue;
+        }
+
+        if (!triggered) break; // nothing triggered, chain ends
+      }
     }
 
     function updateTurn() {
@@ -292,7 +502,7 @@
     updateTurn();
     updatePhase();
 
-    // === PeerJS Connection ===
+    // === PeerJS ===
     const ROOM_ID = 'snake-pitfall-2026-display';
     const statusEl = document.getElementById('status');
     const peer = new Peer(ROOM_ID, { debug: 2 });
@@ -324,23 +534,49 @@
       switch (msg.type) {
         case 'dice':
           await showDice(msg.value);
-          await moveTeam(state.currentTurn, msg.value);
+          // Check skip-turn
+          if (state[`team${state.currentTurn}`].skipNext) {
+            await showBanner(`⏭️ Team ${state.currentTurn} skips this turn!`, 'skip', 1800);
+            state[`team${state.currentTurn}`].skipNext = false;
+            renderPieces();
+            return;
+          }
+          const landedCell = await diceWalk(state.currentTurn, msg.value);
+          await sleep(200);
+          await triggerChain(state.currentTurn, landedCell);
           break;
         case 'switchTurn':
           state.currentTurn = state.currentTurn === 'A' ? 'B' : 'A';
           updateTurn();
           break;
         case 'reset':
-          state.teamA.position = 1;
-          state.teamB.position = 1;
+          state.teamA = { position: 1, treasures: 0, skipNext: false };
+          state.teamB = { position: 1, treasures: 0, skipNext: false };
           state.currentTurn = 'A';
           state.phase = 'setup';
+          state.revealed = {
+            snakes: new Set(),
+            pitfalls: new Set(),
+            treasures: new Set()
+          };
           renderPieces();
+          renderRevealedItems();
           updateTurn();
           updatePhase();
           break;
         case 'startGame':
           state.phase = 'playing';
+          // Receive items from GM
+          if (msg.items) {
+            state.items = msg.items;
+          }
+          // Reset reveals for new round
+          state.revealed = {
+            snakes: new Set(),
+            pitfalls: new Set(),
+            treasures: new Set()
+          };
+          renderRevealedItems();
           updatePhase();
           break;
         case 'setupMode':
