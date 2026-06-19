@@ -5,26 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>Snake & Pitfall — GM Panel</title>
   <style>
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #1a1f3a;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1f3a 0%, #2a3055 100%);
       color: white;
-      padding: 20px;
+      padding: 15px;
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
     }
     h1 {
       text-align: center;
-      margin: 10px 0;
+      margin: 5px 0 15px;
+      font-size: 1.6em;
     }
     #status {
       text-align: center;
-      font-size: 1.2em;
-      padding: 12px;
+      padding: 10px;
       border-radius: 8px;
-      margin: 15px 0;
+      margin-bottom: 15px;
       font-weight: bold;
     }
     .waiting { background: #ff9800; }
@@ -32,89 +33,152 @@
     .error { background: #f44336; }
 
     .panel {
-      background: rgba(255, 255, 255, 0.08);
-      padding: 20px;
+      background: rgba(255,255,255,0.08);
+      padding: 18px;
       border-radius: 12px;
-      margin: 15px 0;
+      margin-bottom: 15px;
     }
     .panel h2 {
       text-align: center;
-      margin-top: 0;
+      margin: 0 0 12px;
+      font-size: 1.1em;
+      opacity: 0.85;
     }
-    button {
+
+    #turnDisplay {
+      text-align: center;
+      font-size: 1.5em;
+      font-weight: bold;
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      transition: all 0.3s;
+    }
+    #turnDisplay.team-a { background: rgba(74, 144, 226, 0.3); border: 2px solid #4a90e2; }
+    #turnDisplay.team-b { background: rgba(231, 76, 60, 0.3); border: 2px solid #e74c3c; }
+
+    /* === Dice Buttons === */
+    .dice-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .dice-btn {
+      font-size: 2em;
+      padding: 18px 0;
+      border: none;
+      border-radius: 10px;
+      background: #2c3e50;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .dice-btn:active {
+      background: #1abc9c;
+      transform: scale(0.95);
+    }
+    .dice-btn.selected {
+      background: #1abc9c;
+      box-shadow: 0 0 15px rgba(26, 188, 156, 0.6);
+    }
+
+    .action-btn {
+      width: 100%;
       font-size: 1.3em;
-      padding: 18px 24px;
-      margin: 8px;
+      padding: 16px;
+      margin: 6px 0;
       border: none;
       border-radius: 10px;
       background: #4a90e2;
       color: white;
+      font-weight: bold;
       cursor: pointer;
-      min-width: 140px;
-      min-height: 60px; /* iPad touch-friendly */
-      font-weight: 600;
-      transition: transform 0.1s, background 0.2s;
+      min-height: 60px;
+      transition: all 0.15s;
     }
-    button:active {
-      background: #357abd;
-      transform: scale(0.96);
+    .action-btn:active { transform: scale(0.97); }
+    .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .action-btn.primary { background: #27ae60; }
+    .action-btn.primary:active { background: #1e8449; }
+    .action-btn.switch { background: #9b59b6; }
+    .action-btn.switch:active { background: #7d3c98; }
+    .action-btn.danger { background: #e74c3c; }
+    .action-btn.danger:active { background: #c0392b; }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
-    button.danger {
-      background: #e74c3c;
-    }
-    button.danger:active {
-      background: #c0392b;
-    }
-    .row {
+
+    .position-info {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      justify-content: space-around;
+      font-size: 1.05em;
+      margin-top: 8px;
     }
-    .hint {
-      text-align: center;
-      opacity: 0.7;
-      font-size: 0.95em;
-    }
+    .team-a-color { color: #4a90e2; font-weight: bold; }
+    .team-b-color { color: #e74c3c; font-weight: bold; }
   </style>
 </head>
 <body>
   <h1>🎮 GM Panel</h1>
-  <div id="status" class="waiting">⏳ Connecting to display...</div>
+  <div id="status" class="waiting">⏳ Connecting...</div>
+
+  <div id="turnDisplay" class="team-a">🔵 Team A's Turn</div>
 
   <div class="panel">
-    <h2>🧪 Test Buttons</h2>
-    <div class="row">
-      <button onclick="sendTest('Hello from iPad!')">👋 Say Hello</button>
-      <button onclick="sendTest('🎲 Dice rolled: 4')">🎲 Test Dice</button>
-      <button onclick="sendTest('🪜 Ladder placed 5→14')">🪜 Test Ladder</button>
-      <button onclick="sendTest('🐍 Snake placed 19→6')">🐍 Test Snake</button>
-      <button class="danger" onclick="sendTest('🔄 RESET')">🔄 Reset</button>
+    <h2>🎲 Dice Input (1–5)</h2>
+    <div class="dice-row">
+      <button class="dice-btn" data-value="1" onclick="selectDice(1)">1</button>
+      <button class="dice-btn" data-value="2" onclick="selectDice(2)">2</button>
+      <button class="dice-btn" data-value="3" onclick="selectDice(3)">3</button>
+      <button class="dice-btn" data-value="4" onclick="selectDice(4)">4</button>
+      <button class="dice-btn" data-value="5" onclick="selectDice(5)">5</button>
+    </div>
+    <button class="action-btn primary" id="moveBtn" onclick="sendMove()" disabled>
+      ▶️ Move Current Team
+    </button>
+  </div>
+
+  <div class="panel">
+    <h2>🔄 Game Controls</h2>
+    <button class="action-btn switch" onclick="switchTurn()">
+      🔄 Switch Turn
+    </button>
+    <button class="action-btn danger" onclick="resetGame()">
+      🔄 Reset Game
+    </button>
+    <div class="position-info">
+      <span><span class="team-a-color">🔵 A:</span> Cell <span id="posA">1</span></span>
+      <span><span class="team-b-color">🔴 B:</span> Cell <span id="posB">1</span></span>
     </div>
   </div>
 
-  <div class="panel">
-    <p class="hint">Tap a button above → check the Display screen 👀</p>
-  </div>
-
-  <!-- PeerJS library -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-
+  https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js
   <script>
     const DISPLAY_ID = 'snake-pitfall-2026-display';
     const statusEl = document.getElementById('status');
-    let conn = null;
+    const turnEl = document.getElementById('turnDisplay');
+    const moveBtn = document.getElementById('moveBtn');
 
+    let conn = null;
+    let selectedDice = null;
+    let currentTurn = 'A';
+    let teamAPos = 1;
+    let teamBPos = 1;
+
+    // === PeerJS Setup ===
     const peer = new Peer({ debug: 2 });
 
-    peer.on('open', (id) => {
-      console.log('GM peer ready, my ID:', id);
+    peer.on('open', () => {
       connectToDisplay();
     });
 
     function connectToDisplay() {
       statusEl.textContent = '🔄 Connecting to Display...';
-      statusEl.className = 'waiting';
-
       conn = peer.connect(DISPLAY_ID, { reliable: true });
 
       conn.on('open', () => {
@@ -123,37 +187,82 @@
       });
 
       conn.on('close', () => {
-        statusEl.textContent = '⚠️ Disconnected — refresh to reconnect';
+        statusEl.textContent = '⚠️ Disconnected — refresh page';
         statusEl.className = 'waiting';
-      });
-
-      conn.on('error', (err) => {
-        console.error('Connection error:', err);
-        statusEl.textContent = '❌ Connection error';
-        statusEl.className = 'error';
       });
     }
 
     peer.on('error', (err) => {
-      console.error('Peer error:', err);
-      statusEl.textContent = '❌ Error: ' + err.type + ' (open display.html first!)';
+      statusEl.textContent = '❌ ' + err.type + ' — open display.html first';
       statusEl.className = 'error';
     });
 
-    function sendTest(message) {
-      if (conn && conn.open) {
-        conn.send({
-          type: 'test',
-          message: message,
-          time: Date.now()
-        });
-        // Quick visual feedback (haptic-like on iPad)
-        if (navigator.vibrate) navigator.vibrate(30);
+    // === UI Logic ===
+    function selectDice(value) {
+      selectedDice = value;
+      document.querySelectorAll('.dice-btn').forEach(btn => {
+        btn.classList.toggle('selected', parseInt(btn.dataset.value) === value);
+      });
+      moveBtn.disabled = false;
+      if (navigator.vibrate) navigator.vibrate(20);
+    }
+
+    function sendMove() {
+      if (!selectedDice) return;
+      if (!conn || !conn.open) {
+        alert('Not connected to Display!');
+        return;
+      }
+      conn.send({ type: 'dice', value: selectedDice });
+
+      // Update local position tracker (mirror of display)
+      if (currentTurn === 'A') {
+        teamAPos = Math.min(teamAPos + selectedDice, 25);
+        document.getElementById('posA').textContent = teamAPos;
       } else {
-        alert('Not connected yet! Make sure display.html is open on the PC first, then refresh this page.');
+        teamBPos = Math.min(teamBPos + selectedDice, 25);
+        document.getElementById('posB').textContent = teamBPos;
+      }
+
+      // Clear selection
+      selectedDice = null;
+      document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
+      moveBtn.disabled = true;
+
+      if (navigator.vibrate) navigator.vibrate(50);
+    }
+
+    function switchTurn() {
+      currentTurn = currentTurn === 'A' ? 'B' : 'A';
+      if (currentTurn === 'A') {
+        turnEl.textContent = "🔵 Team A's Turn";
+        turnEl.className = 'team-a';
+      } else {
+        turnEl.textContent = "🔴 Team B's Turn";
+        turnEl.className = 'team-b';
+      }
+      if (conn && conn.open) {
+        conn.send({ type: 'switchTurn' });
+      }
+      if (navigator.vibrate) navigator.vibrate(30);
+    }
+
+    function resetGame() {
+      if (!confirm('Reset the game? Both teams return to Cell 1.')) return;
+      teamAPos = 1;
+      teamBPos = 1;
+      currentTurn = 'A';
+      document.getElementById('posA').textContent = '1';
+      document.getElementById('posB').textContent = '1';
+      turnEl.textContent = "🔵 Team A's Turn";
+      turnEl.className = 'team-a';
+      selectedDice = null;
+      document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
+      moveBtn.disabled = true;
+      if (conn && conn.open) {
+        conn.send({ type: 'reset' });
       }
     }
   </script>
 </body>
 </html>
-``
