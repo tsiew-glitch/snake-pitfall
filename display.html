@@ -35,7 +35,6 @@
     .waiting { background: #ff9800; }
     .connected { background: #4caf50; }
 
-    /* === Timer === */
     #timer {
       font-size: 2em;
       font-weight: bold;
@@ -69,6 +68,29 @@
       50% { transform: scale(1.08); box-shadow: 0 0 30px rgba(231,76,60,0.7); }
     }
 
+    /* === Final Turn / Game Over Indicator === */
+    #gameStatusBadge {
+      font-size: 1.3em;
+      font-weight: bold;
+      padding: 8px 18px;
+      border-radius: 10px;
+      animation: pulse 1s infinite;
+    }
+    #gameStatusBadge.hidden { display: none; }
+    #gameStatusBadge.final-turn-a {
+      background: rgba(74, 144, 226, 0.4);
+      border: 2px solid #4a90e2;
+    }
+    #gameStatusBadge.final-turn-b {
+      background: rgba(231, 76, 60, 0.4);
+      border: 2px solid #e74c3c;
+    }
+    #gameStatusBadge.game-over {
+      background: rgba(212, 175, 55, 0.5);
+      border: 2px solid #d4af37;
+      animation: none;
+    }
+
     #phaseBanner {
       font-size: 2em;
       padding: 30px 60px;
@@ -97,6 +119,7 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.4);
     }
     #board.hidden { display: none; }
+    #board.locked { opacity: 0.85; pointer-events: none; }
     .cell {
       background: linear-gradient(145deg, #2a3568, #1e2850);
       border-radius: 10px;
@@ -133,11 +156,6 @@
       justify-content: center;
       min-width: 1.6em;
       line-height: 1;
-    }
-    .piece.moving { animation: bounce 0.3s ease; }
-    @keyframes bounce {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.2) translateY(-4px); }
     }
     .revealed-items {
       position: absolute;
@@ -194,6 +212,12 @@
       box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
       transform: scale(1.05);
     }
+    .team-score.winner {
+      background: rgba(76, 175, 80, 0.35);
+      box-shadow: 0 0 30px rgba(76, 175, 80, 0.8);
+      transform: scale(1.1);
+      border: 2px solid #4caf50;
+    }
     .team-score .label { font-size: 1.15em; font-weight: bold; margin-bottom: 6px; }
     .team-score .total { font-size: 1.8em; font-weight: bold; margin-top: 6px; }
     .team-a-color { color: #4a90e2; }
@@ -223,6 +247,9 @@
     #bigBanner.skip { background: #9b59b6; color: white; }
     #bigBanner.goal { background: #f39c12; color: white; }
     #bigBanner.timeup { background: #e74c3c; color: white; font-size: 3.5em; }
+    #bigBanner.finalturn { background: #f39c12; color: white; font-size: 3em; }
+    #bigBanner.gameover { background: #d4af37; color: #1a1f3a; font-size: 3.5em; }
+    #bigBanner.winner { background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%); color: #1a1f3a; font-size: 3.2em; }
 
     #diceDisplay {
       position: fixed;
@@ -249,6 +276,7 @@
   <div id="topBar">
     <div>Turn: <span id="turnIndicator" class="team-a-color">🔵 Team A</span></div>
     <div id="timer" class="hidden">⏱️ 15:00</div>
+    <div id="gameStatusBadge" class="hidden"></div>
     <div id="status" class="waiting">⏳ Waiting for GM...</div>
   </div>
 
@@ -285,7 +313,12 @@
         A: { snakes: [], pitfalls: [], treasures: [] },
         B: { snakes: [], pitfalls: [], treasures: [] }
       },
-      revealed: { snakes: new Set(), pitfalls: new Set(), treasures: new Set() }
+      revealed: { snakes: new Set(), pitfalls: new Set(), treasures: new Set() },
+      // === Game flow tracking ===
+      firstMover: null,       // 'A' or 'B' — who moved first this round
+      timeUpReached: false,   // becomes true when timer hits 0
+      finalTurnPending: false,// true when waiting for last team's final move
+      gameLocked: false       // true after game-over
     };
 
     const PIECE_NUMS = ['①', '②', '③', '④'];
@@ -298,7 +331,6 @@
     let timerSeconds = 15 * 60;
     let timerRunning = false;
     let timerInterval = null;
-    let timeUpTriggered = false;
 
     function formatTime(secs) {
       const m = Math.floor(secs / 60);
@@ -310,10 +342,7 @@
       const timerEl = document.getElementById('timer');
       timerEl.textContent = `⏱️ ${formatTime(timerSeconds)}`;
       timerEl.classList.remove('warning', 'urgent', 'paused');
-      if (state.phase !== 'playing') {
-        timerEl.classList.add('hidden');
-        return;
-      }
+      if (state.phase !== 'playing') { timerEl.classList.add('hidden'); return; }
       timerEl.classList.remove('hidden');
       if (!timerRunning && timerSeconds > 0) {
         timerEl.classList.add('paused');
@@ -332,10 +361,10 @@
         timerSeconds--;
         if (timerSeconds < 0) timerSeconds = 0;
         renderTimer();
-        if (timerSeconds === 0 && !timeUpTriggered) {
-          timeUpTriggered = true;
+        if (timerSeconds === 0 && !state.timeUpReached) {
+          state.timeUpReached = true;
           stopTimer();
-          await showBanner("⏰ TIME'S UP!", 'timeup', 3000);
+          await onTimeUp();
         }
       }, 1000);
       renderTimer();
@@ -343,23 +372,81 @@
 
     function stopTimer() {
       timerRunning = false;
-      if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-      }
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
       renderTimer();
     }
 
     function resetTimer(secs = 900) {
       stopTimer();
       timerSeconds = secs;
-      timeUpTriggered = false;
       renderTimer();
     }
 
     function adjustTimer(deltaSecs) {
       timerSeconds = Math.max(0, Math.min(60 * 60, timerSeconds + deltaSecs));
       renderTimer();
+    }
+
+    // === Game flow: Time-up logic ===
+    async function onTimeUp() {
+      await showBanner("⏰ TIME'S UP!", 'timeup', 2500);
+
+      // Determine if a final turn is needed
+      if (state.firstMover === 'A') {
+        // Team B needs one more move to equalize
+        state.finalTurnPending = true;
+        state.currentTurn = 'B';
+        updateTurn();
+        updateGameStatusBadge();
+        await showBanner("🏁 FINAL TURN — Team B", 'finalturn', 2500);
+      } else if (state.firstMover === 'B') {
+        state.finalTurnPending = true;
+        state.currentTurn = 'A';
+        updateTurn();
+        updateGameStatusBadge();
+        await showBanner("🏁 FINAL TURN — Team A", 'finalturn', 2500);
+      } else {
+        // No one moved yet — just lock
+        await lockGame();
+      }
+    }
+
+    async function lockGame() {
+      state.gameLocked = true;
+      state.finalTurnPending = false;
+      updateGameStatusBadge();
+      document.getElementById('board').classList.add('locked');
+      await showBanner("🏆 GAME OVER!", 'gameover', 2500);
+      declareWinner();
+    }
+
+    function declareWinner() {
+      const aTotal = state.teamA.pieces.reduce((s, p) => s + p, 0) + (state.teamA.treasures * 25);
+      const bTotal = state.teamB.pieces.reduce((s, p) => s + p, 0) + (state.teamB.treasures * 25);
+      const aPanel = document.getElementById('teamAPanel');
+      const bPanel = document.getElementById('teamBPanel');
+      aPanel.classList.remove('active', 'winner');
+      bPanel.classList.remove('active', 'winner');
+      let winText = '';
+      if (aTotal > bTotal) { aPanel.classList.add('winner'); winText = `🏆 TEAM A WINS! ${aTotal} vs ${bTotal}`; }
+      else if (bTotal > aTotal) { bPanel.classList.add('winner'); winText = `🏆 TEAM B WINS! ${bTotal} vs ${aTotal}`; }
+      else { winText = `🤝 DRAW! ${aTotal} – ${bTotal}`; aPanel.classList.add('winner'); bPanel.classList.add('winner'); }
+      setTimeout(() => showBanner(winText, 'winner', 4000), 200);
+    }
+
+    function updateGameStatusBadge() {
+      const badge = document.getElementById('gameStatusBadge');
+      badge.classList.remove('hidden', 'final-turn-a', 'final-turn-b', 'game-over');
+      if (state.gameLocked) {
+        badge.textContent = '🏆 Game Over';
+        badge.classList.add('game-over');
+      } else if (state.finalTurnPending) {
+        const t = state.currentTurn;
+        badge.textContent = `🏁 Final Turn — Team ${t}`;
+        badge.classList.add(t === 'A' ? 'final-turn-a' : 'final-turn-b');
+      } else {
+        badge.classList.add('hidden');
+      }
     }
 
     // === Board ===
@@ -497,11 +584,9 @@
       let currentCell = landedCell;
       let chainCount = 0;
       const maxChain = 10;
-
       while (chainCount < maxChain) {
         chainCount++;
         let triggered = false;
-
         if (isTreasureAt(currentCell)) {
           state.revealed.treasures.add(currentCell);
           state[`team${team}`].treasures++;
@@ -512,7 +597,6 @@
           renderRevealedItems();
           updateScores();
         }
-
         const snake = findSnakeFrom(currentCell);
         if (snake) {
           state.revealed.snakes.add(currentCell);
@@ -536,7 +620,6 @@
           visitedCells.add(currentCell);
           continue;
         }
-
         const pitfall = findPitfallFrom(currentCell);
         if (pitfall) {
           state.revealed.pitfalls.add(currentCell);
@@ -560,13 +643,16 @@
           visitedCells.add(currentCell);
           continue;
         }
-
         if (!triggered) break;
       }
-
       if (currentCell === 25) {
         await showBanner(`🏁 ${pieceEmoji(team, pieceIdx)} reached the GOAL!`, 'goal', 1500);
       }
+    }
+
+    // === Check early win: all 4 pieces at 25 ===
+    function checkAllPiecesAtGoal(team) {
+      return state[`team${team}`].pieces.every(p => p === 25);
     }
 
     function updateTurn() {
@@ -576,13 +662,11 @@
       if (state.currentTurn === 'A') {
         indicator.innerHTML = '🔵 Team A';
         indicator.className = 'team-a-color';
-        aPanel.classList.add('active');
-        bPanel.classList.remove('active');
+        if (!state.gameLocked) { aPanel.classList.add('active'); bPanel.classList.remove('active'); }
       } else {
         indicator.innerHTML = '🔴 Team B';
         indicator.className = 'team-b-color';
-        bPanel.classList.add('active');
-        aPanel.classList.remove('active');
+        if (!state.gameLocked) { bPanel.classList.add('active'); aPanel.classList.remove('active'); }
       }
     }
 
@@ -601,6 +685,7 @@
         score.classList.remove('hidden');
       }
       renderTimer();
+      updateGameStatusBadge();
     }
 
     renderPieces();
@@ -611,10 +696,7 @@
     const statusEl = document.getElementById('status');
     const peer = new Peer(ROOM_ID, { debug: 2 });
 
-    peer.on('open', () => {
-      statusEl.textContent = '✅ Ready';
-    });
-
+    peer.on('open', () => { statusEl.textContent = '✅ Ready'; });
     peer.on('connection', (conn) => {
       statusEl.textContent = '🟢 GM Connected';
       statusEl.className = 'connected';
@@ -627,26 +709,47 @@
         statusEl.className = 'waiting';
       });
     });
-
-    peer.on('error', (err) => {
-      statusEl.textContent = '❌ ' + err.type;
-    });
+    peer.on('error', (err) => { statusEl.textContent = '❌ ' + err.type; });
 
     async function handleAction(msg) {
       switch (msg.type) {
         case 'movePiece':
+          if (state.gameLocked) return; // ignore moves after game-over
           await showDice(msg.dice);
           if (state[`team${msg.team}`].skipNext) {
             await showBanner(`⏭️ Team ${msg.team} skips this turn!`, 'skip', 1800);
             state[`team${msg.team}`].skipNext = false;
             renderPieces();
+            // Even a skipped turn registers first mover
+            if (state.firstMover === null) state.firstMover = msg.team;
+            // After final turn, lock the game
+            if (state.finalTurnPending) {
+              state.finalTurnPending = false;
+              await lockGame();
+            }
             return;
           }
+          // Record first mover
+          if (state.firstMover === null) state.firstMover = msg.team;
+
           const landedCell = await diceWalk(msg.team, msg.pieceIdx, msg.dice);
           await sleep(200);
           await triggerChain(msg.team, msg.pieceIdx, landedCell);
+
+          // Check early win (all 4 pieces at 25)
+          if (checkAllPiecesAtGoal(msg.team)) {
+            await showBanner(`🏆 Team ${msg.team} got all 4 pieces to GOAL!`, 'winner', 3000);
+            // Don't auto-lock — let GM decide, but show banner
+          }
+
+          // If final turn was active, lock the game after this move
+          if (state.finalTurnPending) {
+            state.finalTurnPending = false;
+            await lockGame();
+          }
           break;
         case 'switchTurn':
+          if (state.gameLocked) return;
           state.currentTurn = state.currentTurn === 'A' ? 'B' : 'A';
           updateTurn();
           break;
@@ -656,6 +759,13 @@
           state.currentTurn = 'A';
           state.phase = 'setup';
           state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
+          state.firstMover = null;
+          state.timeUpReached = false;
+          state.finalTurnPending = false;
+          state.gameLocked = false;
+          document.getElementById('board').classList.remove('locked');
+          document.getElementById('teamAPanel').classList.remove('winner');
+          document.getElementById('teamBPanel').classList.remove('winner');
           resetTimer();
           renderPieces();
           renderRevealedItems();
@@ -666,6 +776,13 @@
           state.phase = 'playing';
           if (msg.items) state.items = msg.items;
           state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
+          state.firstMover = null;
+          state.timeUpReached = false;
+          state.finalTurnPending = false;
+          state.gameLocked = false;
+          document.getElementById('board').classList.remove('locked');
+          document.getElementById('teamAPanel').classList.remove('winner');
+          document.getElementById('teamBPanel').classList.remove('winner');
           renderRevealedItems();
           updatePhase();
           break;
@@ -673,12 +790,13 @@
           state.phase = 'setup';
           updatePhase();
           break;
-        // === Timer commands ===
+        case 'endGameNow':
+          // GM manually ends the game (e.g., team got all 4 to goal early)
+          if (!state.gameLocked) await lockGame();
+          break;
         case 'timerStart': startTimer(); break;
         case 'timerPause': stopTimer(); break;
-        case 'timerReset':
-          resetTimer(msg.seconds || 900);
-          break;
+        case 'timerReset': resetTimer(msg.seconds || 900); state.timeUpReached = false; break;
         case 'timerAdjust': adjustTimer(msg.delta); break;
       }
     }
