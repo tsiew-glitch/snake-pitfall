@@ -28,10 +28,46 @@
       align-items: center;
       font-size: 1.2em;
       margin-bottom: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     #status { padding: 8px 16px; border-radius: 8px; font-weight: bold; }
     .waiting { background: #ff9800; }
     .connected { background: #4caf50; }
+
+    /* === Timer === */
+    #timer {
+      font-size: 2em;
+      font-weight: bold;
+      padding: 10px 24px;
+      border-radius: 12px;
+      background: rgba(39, 174, 96, 0.25);
+      border: 2px solid #27ae60;
+      transition: all 0.3s;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 2px;
+    }
+    #timer.hidden { display: none; }
+    #timer.warning {
+      background: rgba(243, 156, 18, 0.3);
+      border-color: #f39c12;
+      color: #f39c12;
+    }
+    #timer.urgent {
+      background: rgba(231, 76, 60, 0.4);
+      border-color: #e74c3c;
+      color: #ffaaaa;
+      animation: urgentPulse 0.6s infinite;
+    }
+    #timer.paused {
+      background: rgba(155, 89, 182, 0.3);
+      border-color: #9b59b6;
+      color: #d3a4ee;
+    }
+    @keyframes urgentPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(231,76,60,0); }
+      50% { transform: scale(1.08); box-shadow: 0 0 30px rgba(231,76,60,0.7); }
+    }
 
     #phaseBanner {
       font-size: 2em;
@@ -186,6 +222,7 @@
     #bigBanner.treasure { background: #d4af37; color: #1a1f3a; }
     #bigBanner.skip { background: #9b59b6; color: white; }
     #bigBanner.goal { background: #f39c12; color: white; }
+    #bigBanner.timeup { background: #e74c3c; color: white; font-size: 3.5em; }
 
     #diceDisplay {
       position: fixed;
@@ -211,6 +248,7 @@
   <h1>🎲 Snake & Pitfall</h1>
   <div id="topBar">
     <div>Turn: <span id="turnIndicator" class="team-a-color">🔵 Team A</span></div>
+    <div id="timer" class="hidden">⏱️ 15:00</div>
     <div id="status" class="waiting">⏳ Waiting for GM...</div>
   </div>
 
@@ -238,40 +276,93 @@
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
-    // === Game State ===
-    // Each team has 4 pieces, each piece has its own position
     const state = {
       phase: 'setup',
-      teamA: {
-        pieces: [1, 1, 1, 1],  // positions of A1, A2, A3, A4
-        treasures: 0,
-        skipNext: false
-      },
-      teamB: {
-        pieces: [1, 1, 1, 1],
-        treasures: 0,
-        skipNext: false
-      },
+      teamA: { pieces: [1, 1, 1, 1], treasures: 0, skipNext: false },
+      teamB: { pieces: [1, 1, 1, 1], treasures: 0, skipNext: false },
       currentTurn: 'A',
       items: {
         A: { snakes: [], pitfalls: [], treasures: [] },
         B: { snakes: [], pitfalls: [], treasures: [] }
       },
-      revealed: {
-        snakes: new Set(),
-        pitfalls: new Set(),
-        treasures: new Set()
-      }
+      revealed: { snakes: new Set(), pitfalls: new Set(), treasures: new Set() }
     };
 
-    // Piece emoji notation
     const PIECE_NUMS = ['①', '②', '③', '④'];
     function pieceEmoji(team, idx) {
       const color = team === 'A' ? '🔵' : '🔴';
       return color + PIECE_NUMS[idx];
     }
 
-    // === Board Setup ===
+    // === Timer ===
+    let timerSeconds = 15 * 60;
+    let timerRunning = false;
+    let timerInterval = null;
+    let timeUpTriggered = false;
+
+    function formatTime(secs) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function renderTimer() {
+      const timerEl = document.getElementById('timer');
+      timerEl.textContent = `⏱️ ${formatTime(timerSeconds)}`;
+      timerEl.classList.remove('warning', 'urgent', 'paused');
+      if (state.phase !== 'playing') {
+        timerEl.classList.add('hidden');
+        return;
+      }
+      timerEl.classList.remove('hidden');
+      if (!timerRunning && timerSeconds > 0) {
+        timerEl.classList.add('paused');
+        timerEl.textContent = `⏸️ ${formatTime(timerSeconds)}`;
+      } else if (timerSeconds <= 30) {
+        timerEl.classList.add('urgent');
+      } else if (timerSeconds <= 60) {
+        timerEl.classList.add('warning');
+      }
+    }
+
+    function startTimer() {
+      if (timerRunning) return;
+      timerRunning = true;
+      timerInterval = setInterval(async () => {
+        timerSeconds--;
+        if (timerSeconds < 0) timerSeconds = 0;
+        renderTimer();
+        if (timerSeconds === 0 && !timeUpTriggered) {
+          timeUpTriggered = true;
+          stopTimer();
+          await showBanner("⏰ TIME'S UP!", 'timeup', 3000);
+        }
+      }, 1000);
+      renderTimer();
+    }
+
+    function stopTimer() {
+      timerRunning = false;
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      renderTimer();
+    }
+
+    function resetTimer(secs = 900) {
+      stopTimer();
+      timerSeconds = secs;
+      timeUpTriggered = false;
+      renderTimer();
+    }
+
+    function adjustTimer(deltaSecs) {
+      timerSeconds = Math.max(0, Math.min(60 * 60, timerSeconds + deltaSecs));
+      renderTimer();
+    }
+
+    // === Board ===
     function getCellNumberAt(visualRow, visualCol) {
       const rowFromBottom = 4 - visualRow;
       const rowStart = rowFromBottom * 5 + 1;
@@ -302,14 +393,11 @@
       for (let i = 1; i <= 25; i++) {
         document.getElementById(`pieces-${i}`).innerHTML = '';
       }
-      // Place all team A pieces
       state.teamA.pieces.forEach((pos, idx) => {
-        const slot = document.getElementById(`pieces-${pos}`);
-        slot.innerHTML += `<span class="piece" id="pieceA${idx}">${pieceEmoji('A', idx)}</span>`;
+        document.getElementById(`pieces-${pos}`).innerHTML += `<span class="piece">${pieceEmoji('A', idx)}</span>`;
       });
       state.teamB.pieces.forEach((pos, idx) => {
-        const slot = document.getElementById(`pieces-${pos}`);
-        slot.innerHTML += `<span class="piece" id="pieceB${idx}">${pieceEmoji('B', idx)}</span>`;
+        document.getElementById(`pieces-${pos}`).innerHTML += `<span class="piece">${pieceEmoji('B', idx)}</span>`;
       });
       updateScores();
     }
@@ -330,15 +418,15 @@
 
     function findSnakeFrom(cellNum) {
       for (const team of ['A', 'B']) {
-        const found = state.items[team].snakes.find(s => s.from === cellNum);
-        if (found) return found;
+        const f = state.items[team].snakes.find(s => s.from === cellNum);
+        if (f) return f;
       }
       return null;
     }
     function findPitfallFrom(cellNum) {
       for (const team of ['A', 'B']) {
-        const found = state.items[team].pitfalls.find(p => p.from === cellNum);
-        if (found) return found;
+        const f = state.items[team].pitfalls.find(p => p.from === cellNum);
+        if (f) return f;
       }
       return null;
     }
@@ -355,7 +443,6 @@
       const bPieces = state.teamB.pieces.reduce((s, p) => s + p, 0);
       const aTotal = aPieces + (state.teamA.treasures * 25);
       const bTotal = bPieces + (state.teamB.treasures * 25);
-
       const aText = state.teamA.pieces.map((p, i) => `${PIECE_NUMS[i]}${p}`).join(' ');
       const bText = state.teamB.pieces.map((p, i) => `${PIECE_NUMS[i]}${p}`).join(' ');
       document.getElementById('teamAPieces').textContent = aText;
@@ -390,7 +477,6 @@
       await sleep(250);
     }
 
-    // === Step-by-step movement for a specific piece ===
     async function diceWalk(team, pieceIdx, steps) {
       let currentPos = state[`team${team}`].pieces[pieceIdx];
       for (let i = 0; i < steps; i++) {
@@ -406,7 +492,6 @@
       return currentPos;
     }
 
-    // === Trigger chain handler ===
     async function triggerChain(team, pieceIdx, landedCell) {
       const visitedCells = new Set([landedCell]);
       let currentCell = landedCell;
@@ -479,7 +564,6 @@
         if (!triggered) break;
       }
 
-      // Check goal reached for celebration
       if (currentCell === 25) {
         await showBanner(`🏁 ${pieceEmoji(team, pieceIdx)} reached the GOAL!`, 'goal', 1500);
       }
@@ -510,35 +594,34 @@
         banner.classList.remove('hidden');
         boardEl.classList.add('hidden');
         score.classList.add('hidden');
+        stopTimer();
       } else {
         banner.classList.add('hidden');
         boardEl.classList.remove('hidden');
         score.classList.remove('hidden');
       }
+      renderTimer();
     }
 
     renderPieces();
     updateTurn();
     updatePhase();
 
-    // === PeerJS ===
     const ROOM_ID = 'snake-pitfall-2026-display';
     const statusEl = document.getElementById('status');
     const peer = new Peer(ROOM_ID, { debug: 2 });
 
     peer.on('open', () => {
-      statusEl.textContent = '✅ Ready — waiting for GM';
+      statusEl.textContent = '✅ Ready';
     });
 
     peer.on('connection', (conn) => {
       statusEl.textContent = '🟢 GM Connected';
       statusEl.className = 'connected';
-
       conn.on('data', async (msg) => {
         console.log('Received:', msg);
         await handleAction(msg);
       });
-
       conn.on('close', () => {
         statusEl.textContent = '⚠️ GM disconnected';
         statusEl.className = 'waiting';
@@ -552,7 +635,6 @@
     async function handleAction(msg) {
       switch (msg.type) {
         case 'movePiece':
-          // msg = { type, team, pieceIdx, dice }
           await showDice(msg.dice);
           if (state[`team${msg.team}`].skipNext) {
             await showBanner(`⏭️ Team ${msg.team} skips this turn!`, 'skip', 1800);
@@ -573,11 +655,8 @@
           state.teamB = { pieces: [1, 1, 1, 1], treasures: 0, skipNext: false };
           state.currentTurn = 'A';
           state.phase = 'setup';
-          state.revealed = {
-            snakes: new Set(),
-            pitfalls: new Set(),
-            treasures: new Set()
-          };
+          state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
+          resetTimer();
           renderPieces();
           renderRevealedItems();
           updateTurn();
@@ -586,18 +665,21 @@
         case 'startGame':
           state.phase = 'playing';
           if (msg.items) state.items = msg.items;
-          state.revealed = {
-            snakes: new Set(),
-            pitfalls: new Set(),
-            treasures: new Set()
-          };
-          renderRevealedItems();
+          state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
+     ();
           updatePhase();
           break;
         case 'setupMode':
           state.phase = 'setup';
           updatePhase();
           break;
+        // === Timer commands ===
+        case 'timerStart': startTimer(); break;
+        case 'timerPause': stopTimer(); break;
+        case 'timerReset':
+          resetTimer(msg.seconds || 900);
+          break;
+        case 'timerAdjust': adjustTimer(msg.delta); break;
       }
     }
   </script>
