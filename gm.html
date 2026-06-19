@@ -142,6 +142,41 @@
     #turnDisplay.team-a { background: rgba(74, 144, 226, 0.3); border: 2px solid #4a90e2; }
     #turnDisplay.team-b { background: rgba(231, 76, 60, 0.3); border: 2px solid #e74c3c; }
 
+    /* === Timer Panel === */
+    #timerDisplay {
+      text-align: center;
+      font-size: 2em;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(39, 174, 96, 0.2);
+      border: 2px solid #27ae60;
+      margin-bottom: 8px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 2px;
+    }
+    #timerDisplay.warning { background: rgba(243, 156, 18, 0.25); border-color: #f39c12; color: #f39c12; }
+    #timerDisplay.urgent { background: rgba(231, 76, 60, 0.3); border-color: #e74c3c; color: #ffaaaa; }
+    #timerDisplay.paused { background: rgba(155, 89, 182, 0.25); border-color: #9b59b6; color: #d3a4ee; }
+
+    .timer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .timer-btn {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #2c3e50;
+      color: white;
+      font-weight: bold;
+      font-size: 0.95em;
+      cursor: pointer;
+      min-height: 50px;
+    }
+    .timer-btn.start { background: #27ae60; }
+    .timer-btn.pause { background: #f39c12; }
+    .timer-btn.reset { background: #9b59b6; }
+    .timer-btn.adjust { background: #4a90e2; font-size: 0.85em; }
+    .timer-btn:active { transform: scale(0.96); }
+
     #pieceSelector {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -159,10 +194,7 @@
       cursor: pointer;
       text-align: left;
     }
-    .piece-btn .piece-id {
-      font-size: 1.3em;
-      margin-right: 6px;
-    }
+    .piece-btn .piece-id { font-size: 1.3em; margin-right: 6px; }
     .piece-btn.team-a-piece { border-color: #4a90e2; }
     .piece-btn.team-b-piece { border-color: #e74c3c; }
     .piece-btn.selected {
@@ -175,9 +207,7 @@
       color: #1a1f3a;
       opacity: 0.7;
     }
-    .piece-btn.at-goal::after {
-      content: ' 🏁';
-    }
+    .piece-btn.at-goal::after { content: ' 🏁'; }
 
     .dice-row {
       display: grid;
@@ -278,6 +308,20 @@
     <div id="turnDisplay" class="team-a">🔵 Team A's Turn</div>
 
     <div class="panel">
+      <h2>⏱️ Timer</h2>
+      <div id="timerDisplay">⏱️ 15:00</div>
+      <div class="timer-row">
+        <button class="timer-btn start" id="timerStartBtn" onclick="timerStart()">▶️ Start</button>
+        <button class="timer-btn pause" id="timerPauseBtn" onclick="timerPause()">⏸️ Pause</button>
+      </div>
+      <div class="timer-row">
+        <button class="timer-btn adjust" onclick="timerAdjust(-30)">−30s</button>
+        <button class="timer-btn adjust" onclick="timerAdjust(30)">+30s</button>
+      </div>
+      <button class="timer-btn reset" style="width:100%;" onclick="timerReset()">🔄 Reset to 15:00</button>
+    </div>
+
+    <div class="panel">
       <h2>🎯 Select Piece</h2>
       <div id="pieceSelector"></div>
     </div>
@@ -309,7 +353,7 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js
   <script>
     const DISPLAY_ID = 'snake-pitfall-2026-display';
     let conn = null;
@@ -325,14 +369,76 @@
     };
 
     const PIECE_NUMS = ['①', '②', '③', '④'];
-    const teamPieces = {
-      A: [1, 1, 1, 1],
-      B: [1, 1, 1, 1]
-    };
+    const teamPieces = { A: [1, 1, 1, 1], B: [1, 1, 1, 1] };
     let currentTurn = 'A';
     let selectedDice = null;
     let selectedPieceIdx = null;
 
+    // === Timer (mirrored from display) ===
+    let timerSeconds = 15 * 60;
+    let timerRunning = false;
+    let timerInterval = null;
+
+    function formatTime(secs) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function renderTimerLocal() {
+      const el = document.getElementById('timerDisplay');
+      el.classList.remove('warning', 'urgent', 'paused');
+      if (timerRunning) {
+        el.textContent = `⏱️ ${formatTime(timerSeconds)}`;
+        if (timerSeconds <= 30) el.classList.add('urgent');
+        else if (timerSeconds <= 60) el.classList.add('warning');
+      } else {
+        el.textContent = `⏸️ ${formatTime(timerSeconds)}`;
+        el.classList.add('paused');
+      }
+    }
+
+    function timerStart() {
+      if (timerRunning) return;
+      timerRunning = true;
+      timerInterval = setInterval(() => {
+        timerSeconds--;
+        if (timerSeconds < 0) {
+          timerSeconds = 0;
+          timerRunning = false;
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        renderTimerLocal();
+      }, 1000);
+      renderTimerLocal();
+      if (conn && conn.open) conn.send({ type: 'timerStart' });
+    }
+
+    function timerPause() {
+      if (!timerRunning) return;
+      timerRunning = false;
+      clearInterval(timerInterval);
+      timerInterval = null;
+      renderTimerLocal();
+      if (conn && conn.open) conn.send({ type: 'timerPause' });
+    }
+
+    function timerReset() {
+      timerRunning = false;
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      timerSeconds = 15 * 60;
+      renderTimerLocal();
+      if (conn && conn.open) conn.send({ type: 'timerReset', seconds: 900 });
+    }
+
+    function timerAdjust(delta) {
+      timerSeconds = Math.max(0, Math.min(60 * 60, timerSeconds + delta));
+      renderTimerLocal();
+      if (conn && conn.open) conn.send({ type: 'timerAdjust', delta: delta });
+    }
+
+    // === Board helpers ===
     function getCellCoords(cellNum) {
       const rowFromBottom = Math.floor((cellNum - 1) / 5);
       const visualRow = 4 - rowFromBottom;
@@ -480,19 +586,16 @@
 
     function selectTeam(team) {
       currentTeam = team;
-      sourceCell = null;
-      validTargets = [];
+      sourceCell = null; validTargets = [];
       document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('active'));
       document.querySelector(`.team-${team.toLowerCase()}-btn`).classList.add('active');
-      renderSetupBoard();
-      updateQuota();
+      renderSetupBoard(); updateQuota();
       showHint(`Placing for Team ${team}`);
     }
 
     function selectTool(tool) {
       currentTool = tool;
-      sourceCell = null;
-      validTargets = [];
+      sourceCell = null; validTargets = [];
       document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(`tool${tool.charAt(0).toUpperCase()}${tool.slice(1)}`).classList.add('active');
       renderSetupBoard();
@@ -525,6 +628,11 @@
       selectedDice = null;
       document.getElementById('turnDisplay').textContent = "🔵 Team A's Turn";
       document.getElementById('turnDisplay').className = 'team-a';
+      // Reset timer for new round
+      timerSeconds = 15 * 60;
+      timerRunning = false;
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      renderTimerLocal();
       switchPhase('playing');
       updateCheatSheet();
       renderPieceSelector();
@@ -532,6 +640,7 @@
         conn.send({ type: 'reset' });
         setTimeout(() => {
           conn.send({ type: 'startGame', items: items });
+          conn.send({ type: 'timerReset', seconds: 900 });
         }, 100);
       }
     }
@@ -543,11 +652,12 @@
       document.getElementById('setupTab').classList.toggle('active', p === 'setup');
       document.getElementById('playTab').classList.toggle('active', p === 'playing');
       if (p === 'setup' && conn && conn.open) conn.send({ type: 'setupMode' });
-      if (p === 'playing') renderPieceSelector();
+      if (p === 'playing') { renderPieceSelector(); renderTimerLocal(); }
     }
 
     function backToSetup() {
       if (!confirm('Go back to setup? Play progress lost.')) return;
+      timerPause();
       switchPhase('setup');
     }
 
@@ -570,9 +680,7 @@
     }
 
     function selectPiece(idx) {
-      if (teamPieces[currentTurn][idx] === 25) {
-        return;
-      }
+      if (teamPieces[currentTurn][idx] === 25) return;
       selectedPieceIdx = idx;
       renderPieceSelector();
       if (navigator.vibrate) navigator.vibrate(20);
@@ -642,6 +750,9 @@
       currentTurn = 'A';
       selectedDice = null;
       selectedPieceIdx = null;
+      timerSeconds = 15 * 60;
+      timerRunning = false;
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
       switchPhase('setup');
       selectTeam('A');
       selectTool('snake');
@@ -671,9 +782,11 @@
       statusEl.className = 'error';
     });
 
+    renderSetupBoard();
     updateQuota();
     updatePlacedList();
     selectTool('snake');
+    renderTimerLocal();
   </script>
 </body>
 </html>
