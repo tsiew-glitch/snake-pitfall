@@ -35,37 +35,14 @@
     .waiting { background: #ff9800; }
     .connected { background: #4caf50; }
 
-    #timer {
-      font-size: 2em;
-      font-weight: bold;
-      padding: 10px 24px;
-      border-radius: 12px;
-      background: rgba(39, 174, 96, 0.25);
-      border: 2px solid #27ae60;
-      transition: all 0.3s;
-      font-family: 'Courier New', monospace;
-      letter-spacing: 2px;
-    }
-    #timer.hidden { display: none; }
-    #timer.warning { background: rgba(243, 156, 18, 0.3); border-color: #f39c12; color: #f39c12; }
-    #timer.urgent { background: rgba(231, 76, 60, 0.4); border-color: #e74c3c; color: #ffaaaa; animation: urgentPulse 0.6s infinite; }
-    #timer.paused { background: rgba(155, 89, 182, 0.3); border-color: #9b59b6; color: #d3a4ee; }
-    @keyframes urgentPulse {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(231,76,60,0); }
-      50% { transform: scale(1.08); box-shadow: 0 0 30px rgba(231,76,60,0.7); }
-    }
-
     #gameStatusBadge {
       font-size: 1.3em;
       font-weight: bold;
       padding: 8px 18px;
       border-radius: 10px;
-      animation: pulse 1s infinite;
     }
     #gameStatusBadge.hidden { display: none; }
-    #gameStatusBadge.final-turn-a { background: rgba(74, 144, 226, 0.4); border: 2px solid #4a90e2; }
-    #gameStatusBadge.final-turn-b { background: rgba(231, 76, 60, 0.4); border: 2px solid #e74c3c; }
-    #gameStatusBadge.game-over { background: rgba(212, 175, 55, 0.5); border: 2px solid #d4af37; animation: none; }
+    #gameStatusBadge.game-over { background: rgba(212, 175, 55, 0.5); border: 2px solid #d4af37; }
 
     #phaseBanner {
       font-size: 2em;
@@ -163,11 +140,6 @@
       0%, 100% { filter: drop-shadow(0 0 4px rgba(255,215,0,0.6)); transform: scale(1); }
       50% { filter: drop-shadow(0 0 14px rgba(255,215,0,1)); transform: scale(1.15); }
     }
-    .item-icon.conflict { animation: conflictPulse 0.8s infinite; color: #ff9800; }
-    @keyframes conflictPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.2); }
-    }
 
     .cell.highlight {
       background: linear-gradient(145deg, #f39c12, #d68910) !important;
@@ -199,11 +171,7 @@
       100% { transform: scale(1); }
     }
 
-    /* Cute snake animation */
-    .snake-body {
-      animation: snakeWiggle 2s infinite ease-in-out;
-      transform-origin: center;
-    }
+    .snake-body { animation: snakeWiggle 2s infinite ease-in-out; transform-origin: center; }
     @keyframes snakeWiggle {
       0%, 100% { opacity: 0.85; }
       50% { opacity: 1; }
@@ -218,8 +186,6 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.3; }
     }
-
-    /* Cute pitfall animation */
     .pit-hole-source { animation: pitPulse 2s infinite ease-in-out; transform-origin: center; }
     @keyframes pitPulse {
       0%, 100% { opacity: 0.95; }
@@ -268,7 +234,7 @@
       position: fixed;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%) scale(0);
-      font-size: 2.6em;
+      font-size: 2.3em;
       background: white;
       color: #0a0e27;
       padding: 30px 60px;
@@ -283,11 +249,9 @@
     #bigBanner.snake { background: #27ae60; color: white; }
     #bigBanner.pitfall { background: #c0392b; color: white; }
     #bigBanner.treasure { background: #d4af37; color: #1a1f3a; }
-    #bigBanner.skip { background: #9b59b6; color: white; }
+    #bigBanner.loop { background: #9b59b6; color: white; }
     #bigBanner.conflict { background: #8e44ad; color: white; }
     #bigBanner.goal { background: #f39c12; color: white; }
-    #bigBanner.timeup { background: #e74c3c; color: white; font-size: 3.5em; }
-    #bigBanner.finalturn { background: #f39c12; color: white; font-size: 3em; }
     #bigBanner.gameover { background: #d4af37; color: #1a1f3a; font-size: 3.5em; }
     #bigBanner.winner { background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%); color: #1a1f3a; font-size: 3.2em; }
 
@@ -315,7 +279,6 @@
   <h1>🎲 Snake & Pitfall</h1>
   <div id="topBar">
     <div>Turn: <span id="turnIndicator" class="team-a-color">🔵 Team A</span></div>
-    <div id="timer" class="hidden">⏱️ 15:00</div>
     <div id="gameStatusBadge" class="hidden"></div>
     <div id="status" class="waiting">⏳ Waiting for GM...</div>
   </div>
@@ -326,10 +289,6 @@
     <div id="board"></div>
     <svg id="arrowSvg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
       <defs>
-        <radialGradient id="snakeBodyGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#52d685" />
-          <stop offset="100%" stop-color="#1e7d3f" />
-        </radialGradient>
         <radialGradient id="snakeHeadGrad" cx="40%" cy="40%" r="60%">
           <stop offset="0%" stop-color="#7be899" />
           <stop offset="100%" stop-color="#1e7d3f" />
@@ -365,17 +324,14 @@
   <script>
     const state = {
       phase: 'setup',
-      teamA: { pieces: [1, 1, 1, 1], treasures: 0, skipNext: false },
-      teamB: { pieces: [1, 1, 1, 1], treasures: 0, skipNext: false },
+      teamA: { pieces: [1, 1, 1, 1], treasures: 0 },
+      teamB: { pieces: [1, 1, 1, 1], treasures: 0 },
       currentTurn: 'A',
       items: {
         A: { snakes: [], pitfalls: [], treasures: [] },
         B: { snakes: [], pitfalls: [], treasures: [] }
       },
       revealed: { snakes: new Set(), pitfalls: new Set(), treasures: new Set() },
-      firstMover: null,
-      timeUpReached: false,
-      finalTurnPending: false,
       gameLocked: false
     };
 
@@ -384,82 +340,8 @@
       return (team === 'A' ? '🔵' : '🔴') + PIECE_NUMS[idx];
     }
 
-    let timerSeconds = 15 * 60;
-    let timerRunning = false;
-    let timerInterval = null;
-
-    function formatTime(secs) {
-      const m = Math.floor(secs / 60);
-      const s = secs % 60;
-      return `${m}:${s.toString().padStart(2, '0')}`;
-    }
-
-    function renderTimer() {
-      const timerEl = document.getElementById('timer');
-      timerEl.textContent = `⏱️ ${formatTime(timerSeconds)}`;
-      timerEl.classList.remove('warning', 'urgent', 'paused');
-      if (state.phase !== 'playing') { timerEl.classList.add('hidden'); return; }
-      timerEl.classList.remove('hidden');
-      if (!timerRunning && timerSeconds > 0) {
-        timerEl.classList.add('paused');
-        timerEl.textContent = `⏸️ ${formatTime(timerSeconds)}`;
-      } else if (timerSeconds <= 30) timerEl.classList.add('urgent');
-      else if (timerSeconds <= 60) timerEl.classList.add('warning');
-    }
-
-    function startTimer() {
-      if (timerRunning) return;
-      timerRunning = true;
-      timerInterval = setInterval(async () => {
-        timerSeconds--;
-        if (timerSeconds < 0) timerSeconds = 0;
-        renderTimer();
-        if (timerSeconds === 0 && !state.timeUpReached) {
-          state.timeUpReached = true;
-          stopTimer();
-          await onTimeUp();
-        }
-      }, 1000);
-      renderTimer();
-    }
-
-    function stopTimer() {
-      timerRunning = false;
-      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-      renderTimer();
-    }
-
-    function resetTimer(secs = 900) {
-      stopTimer();
-      timerSeconds = secs;
-      renderTimer();
-    }
-
-    function adjustTimer(deltaSecs) {
-      timerSeconds = Math.max(0, Math.min(60 * 60, timerSeconds + deltaSecs));
-      renderTimer();
-    }
-
-    async function onTimeUp() {
-      await showBanner("⏰ TIME'S UP!", 'timeup', 2500);
-      if (state.firstMover === 'A') {
-        state.finalTurnPending = true;
-        state.currentTurn = 'B';
-        updateTurn();
-        updateGameStatusBadge();
-        await showBanner("🏁 FINAL TURN — Team B", 'finalturn', 2500);
-      } else if (state.firstMover === 'B') {
-        state.finalTurnPending = true;
-        state.currentTurn = 'A';
-        updateTurn();
-        updateGameStatusBadge();
-        await showBanner("🏁 FINAL TURN — Team A", 'finalturn', 2500);
-      } else await lockGame();
-    }
-
     async function lockGame() {
       state.gameLocked = true;
-      state.finalTurnPending = false;
       updateGameStatusBadge();
       document.getElementById('board').classList.add('locked');
       await showBanner("🏆 GAME OVER!", 'gameover', 2500);
@@ -482,13 +364,9 @@
 
     function updateGameStatusBadge() {
       const badge = document.getElementById('gameStatusBadge');
-      badge.classList.remove('hidden', 'final-turn-a', 'final-turn-b', 'game-over');
+      badge.classList.remove('hidden', 'game-over');
       if (state.gameLocked) { badge.textContent = '🏆 Game Over'; badge.classList.add('game-over'); }
-      else if (state.finalTurnPending) {
-        const t = state.currentTurn;
-        badge.textContent = `🏁 Final Turn — Team ${t}`;
-        badge.classList.add(t === 'A' ? 'final-turn-a' : 'final-turn-b');
-      } else badge.classList.add('hidden');
+      else badge.classList.add('hidden');
     }
 
     function getCellNumberAt(visualRow, visualCol) {
@@ -545,12 +423,21 @@
       updateScores();
     }
 
-    function findSnakeFrom(cellNum) {
+    // Returns ALL snakes from a cell (across both teams)
+    function getAllSnakesFrom(cellNum) {
+      const snakes = [];
       for (const team of ['A', 'B']) {
-        const f = state.items[team].snakes.find(s => s.from === cellNum);
-        if (f) return f;
+        state.items[team].snakes.forEach(s => {
+          if (s.from === cellNum) snakes.push(s);
+        });
       }
-      return null;
+      return snakes;
+    }
+    // Returns the snake with the BIGGEST target (for triggering)
+    function findBestSnakeFrom(cellNum) {
+      const all = getAllSnakesFrom(cellNum);
+      if (all.length === 0) return null;
+      return all.reduce((best, s) => (s.to > best.to ? s : best), all[0]);
     }
     function findPitfallFrom(cellNum) {
       for (const team of ['A', 'B']) {
@@ -567,158 +454,86 @@
 
     function renderRevealedItems() {
       for (let i = 1; i <= 25; i++) document.getElementById(`items-${i}`).innerHTML = '';
-
-      // Clear existing SVG drawings (keep defs)
       const svg = document.getElementById('arrowSvg');
       const oldDrawings = svg.querySelectorAll('.arrow-line');
       oldDrawings.forEach(a => a.remove());
 
-      // Track which cells have which heads to detect conflict
-      const cellsWithSnakeHead = new Set();
-      const cellsWithPitfallHead = new Set();
-      state.revealed.snakes.forEach(c => cellsWithSnakeHead.add(c));
-      state.revealed.pitfalls.forEach(c => cellsWithPitfallHead.add(c));
-
-      // Draw snakes
+      // Draw ALL snakes at revealed cells
       state.revealed.snakes.forEach(fromCell => {
-        const item = findSnakeFrom(fromCell);
-        if (!item) return;
-        const conflict = cellsWithPitfallHead.has(fromCell);
-        drawCuteSnake(fromCell, item.to);
-        // Small corner icon as marker
-        document.getElementById(`items-${fromCell}`).innerHTML += conflict
-          ? `<span class="item-icon conflict">⚠️</span>`
-          : '';
+        const snakes = getAllSnakesFrom(fromCell);
+        snakes.forEach(s => drawCuteSnake(fromCell, s.to));
       });
-
-      // Draw pitfalls
       state.revealed.pitfalls.forEach(fromCell => {
         const item = findPitfallFrom(fromCell);
-        if (!item) return;
-        const conflict = cellsWithSnakeHead.has(fromCell);
-        drawCutePitfall(fromCell, item.to);
-        if (conflict && !cellsWithSnakeHead.has(fromCell)) {
-          document.getElementById(`items-${fromCell}`).innerHTML += `<span class="item-icon conflict">⚠️</span>`;
-        }
+        if (item) drawCutePitfall(fromCell, item.to);
       });
     }
 
-    // === Cute Snake Drawing ===
     function drawCuteSnake(fromCell, toCell) {
       const from = getCellCenter(fromCell);
       const to = getCellCenter(toCell);
       const svg = document.getElementById('arrowSvg');
       const SVG_NS = 'http://www.w3.org/2000/svg';
-
       const dx = to.x - from.x;
       const dy = to.y - from.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
       const perpX = -dy / dist;
       const perpY = dx / dist;
       const wave = Math.min(dist * 0.35, 60);
-
-      // Wavy path with two control points (S-curve)
       const ctrl1X = from.x + dx * 0.3 + perpX * wave;
       const ctrl1Y = from.y + dy * 0.3 + perpY * wave;
       const ctrl2X = from.x + dx * 0.7 - perpX * wave;
       const ctrl2Y = from.y + dy * 0.7 - perpY * wave;
       const pathD = `M ${from.x} ${from.y} C ${ctrl1X} ${ctrl1Y}, ${ctrl2X} ${ctrl2Y}, ${to.x} ${to.y}`;
 
-      // Outer body (dark green outline)
-      const outerBody = document.createElementNS(SVG_NS, 'path');
-      outerBody.classList.add('arrow-line', 'snake-body');
-      outerBody.setAttribute('d', pathD);
-      outerBody.setAttribute('stroke', '#1e7d3f');
-      outerBody.setAttribute('stroke-width', '32');
-      outerBody.setAttribute('stroke-linecap', 'round');
-      outerBody.setAttribute('fill', 'none');
-      svg.appendChild(outerBody);
+      [
+        { color: '#1e7d3f', width: 32 },
+        { color: '#27ae60', width: 24 },
+        { color: '#52d685', width: 10, opacity: 0.7 }
+      ].forEach(({ color, width, opacity }) => {
+        const p = document.createElementNS(SVG_NS, 'path');
+        p.classList.add('arrow-line', 'snake-body');
+        p.setAttribute('d', pathD);
+        p.setAttribute('stroke', color);
+        p.setAttribute('stroke-width', width);
+        p.setAttribute('stroke-linecap', 'round');
+        p.setAttribute('fill', 'none');
+        if (opacity) p.setAttribute('opacity', opacity);
+        svg.appendChild(p);
+      });
 
-      // Main body (vibrant green)
-      const mainBody = document.createElementNS(SVG_NS, 'path');
-      mainBody.classList.add('arrow-line', 'snake-body');
-      mainBody.setAttribute('d', pathD);
-      mainBody.setAttribute('stroke', '#27ae60');
-      mainBody.setAttribute('stroke-width', '24');
-      mainBody.setAttribute('stroke-linecap', 'round');
-      mainBody.setAttribute('fill', 'none');
-      svg.appendChild(mainBody);
-
-      // Inner highlight (lighter)
-      const innerBody = document.createElementNS(SVG_NS, 'path');
-      innerBody.classList.add('arrow-line', 'snake-body');
-      innerBody.setAttribute('d', pathD);
-      innerBody.setAttribute('stroke', '#52d685');
-      innerBody.setAttribute('stroke-width', '10');
-      innerBody.setAttribute('stroke-linecap', 'round');
-      innerBody.setAttribute('fill', 'none');
-      innerBody.setAttribute('opacity', '0.7');
-      svg.appendChild(innerBody);
-
-      // Snake head at destination (cute round head)
       const head = document.createElementNS(SVG_NS, 'circle');
       head.classList.add('arrow-line', 'snake-head');
-      head.setAttribute('cx', to.x);
-      head.setAttribute('cy', to.y);
-      head.setAttribute('r', '28');
-      head.setAttribute('fill', 'url(#snakeHeadGrad)');
-      head.setAttribute('stroke', '#1e7d3f');
-      head.setAttribute('stroke-width', '3');
+      head.setAttribute('cx', to.x); head.setAttribute('cy', to.y);
+      head.setAttribute('r', '28'); head.setAttribute('fill', 'url(#snakeHeadGrad)');
+      head.setAttribute('stroke', '#1e7d3f'); head.setAttribute('stroke-width', '3');
       svg.appendChild(head);
 
-      // Tail at source (small green ball)
       const tail = document.createElementNS(SVG_NS, 'circle');
       tail.classList.add('arrow-line');
-      tail.setAttribute('cx', from.x);
-      tail.setAttribute('cy', from.y);
-      tail.setAttribute('r', '14');
-      tail.setAttribute('fill', '#1e7d3f');
+      tail.setAttribute('cx', from.x); tail.setAttribute('cy', from.y);
+      tail.setAttribute('r', '14'); tail.setAttribute('fill', '#1e7d3f');
       svg.appendChild(tail);
 
-      // Eyes (white)
-      const eye1 = document.createElementNS(SVG_NS, 'circle');
-      eye1.classList.add('arrow-line');
-      eye1.setAttribute('cx', to.x - 9);
-      eye1.setAttribute('cy', to.y - 8);
-      eye1.setAttribute('r', '6');
-      eye1.setAttribute('fill', 'white');
-      svg.appendChild(eye1);
+      [[-9, -8], [9, -8]].forEach(([ox, oy]) => {
+        const eye = document.createElementNS(SVG_NS, 'circle');
+        eye.classList.add('arrow-line');
+        eye.setAttribute('cx', to.x + ox); eye.setAttribute('cy', to.y + oy);
+        eye.setAttribute('r', '6'); eye.setAttribute('fill', 'white');
+        svg.appendChild(eye);
+        const pup = document.createElementNS(SVG_NS, 'circle');
+        pup.classList.add('arrow-line');
+        pup.setAttribute('cx', to.x + ox + 1); pup.setAttribute('cy', to.y + oy + 1);
+        pup.setAttribute('r', '3'); pup.setAttribute('fill', '#000');
+        svg.appendChild(pup);
+      });
 
-      const eye2 = document.createElementNS(SVG_NS, 'circle');
-      eye2.classList.add('arrow-line');
-      eye2.setAttribute('cx', to.x + 9);
-      eye2.setAttribute('cy', to.y - 8);
-      eye2.setAttribute('r', '6');
-      eye2.setAttribute('fill', 'white');
-      svg.appendChild(eye2);
-
-      // Pupils (black)
-      const pup1 = document.createElementNS(SVG_NS, 'circle');
-      pup1.classList.add('arrow-line');
-      pup1.setAttribute('cx', to.x - 8);
-      pup1.setAttribute('cy', to.y - 7);
-      pup1.setAttribute('r', '3');
-      pup1.setAttribute('fill', '#000');
-      svg.appendChild(pup1);
-
-      const pup2 = document.createElementNS(SVG_NS, 'circle');
-      pup2.classList.add('arrow-line');
-      pup2.setAttribute('cx', to.x + 10);
-      pup2.setAttribute('cy', to.y - 7);
-      pup2.setAttribute('r', '3');
-      pup2.setAttribute('fill', '#000');
-      svg.appendChild(pup2);
-
-      // Forked tongue
       const tongue = document.createElementNS(SVG_NS, 'path');
       tongue.classList.add('arrow-line', 'snake-tongue');
       tongue.setAttribute('d',
-        `M ${to.x} ${to.y + 12}
-         L ${to.x} ${to.y + 22}
-         M ${to.x} ${to.y + 22}
-         L ${to.x - 6} ${to.y + 28}
-         M ${to.x} ${to.y + 22}
-         L ${to.x + 6} ${to.y + 28}`);
+        `M ${to.x} ${to.y + 12} L ${to.x} ${to.y + 22}
+         M ${to.x} ${to.y + 22} L ${to.x - 6} ${to.y + 28}
+         M ${to.x} ${to.y + 22} L ${to.x + 6} ${to.y + 28}`);
       tongue.setAttribute('stroke', '#ff4d8d');
       tongue.setAttribute('stroke-width', '3');
       tongue.setAttribute('stroke-linecap', 'round');
@@ -726,78 +541,46 @@
       svg.appendChild(tongue);
     }
 
-    // === Cute Pitfall Drawing ===
     function drawCutePitfall(fromCell, toCell) {
       const from = getCellCenter(fromCell);
       const to = getCellCenter(toCell);
       const svg = document.getElementById('arrowSvg');
       const SVG_NS = 'http://www.w3.org/2000/svg';
 
-      // Source hole - outer brown rim
-      const sourceRim = document.createElementNS(SVG_NS, 'ellipse');
-      sourceRim.classList.add('arrow-line', 'pit-hole-source');
-      sourceRim.setAttribute('cx', from.x);
-      sourceRim.setAttribute('cy', from.y);
-      sourceRim.setAttribute('rx', '45');
-      sourceRim.setAttribute('ry', '18');
-      sourceRim.setAttribute('fill', '#5d4037');
-      sourceRim.setAttribute('stroke', '#8b4513');
-      sourceRim.setAttribute('stroke-width', '3');
-      svg.appendChild(sourceRim);
+      [from, to].forEach(p => {
+        const rim = document.createElementNS(SVG_NS, 'ellipse');
+        rim.classList.add('arrow-line', 'pit-hole-source');
+        rim.setAttribute('cx', p.x); rim.setAttribute('cy', p.y);
+        rim.setAttribute('rx', '45'); rim.setAttribute('ry', '18');
+        rim.setAttribute('fill', '#5d4037');
+        rim.setAttribute('stroke', '#8b4513');
+        rim.setAttribute('stroke-width', '3');
+        svg.appendChild(rim);
 
-      // Source hole - dark interior
-      const sourceHole = document.createElementNS(SVG_NS, 'ellipse');
-      sourceHole.classList.add('arrow-line', 'pit-hole-source');
-      sourceHole.setAttribute('cx', from.x);
-      sourceHole.setAttribute('cy', from.y);
-      sourceHole.setAttribute('rx', '36');
-      sourceHole.setAttribute('ry', '13');
-      sourceHole.setAttribute('fill', 'url(#pitGrad)');
-      svg.appendChild(sourceHole);
+        const hole = document.createElementNS(SVG_NS, 'ellipse');
+        hole.classList.add('arrow-line', 'pit-hole-source');
+        hole.setAttribute('cx', p.x); hole.setAttribute('cy', p.y);
+        hole.setAttribute('rx', '36'); hole.setAttribute('ry', '13');
+        hole.setAttribute('fill', 'url(#pitGrad)');
+        svg.appendChild(hole);
 
-      // Inner darkness (deeper center)
-      const sourceDeep = document.createElementNS(SVG_NS, 'ellipse');
-      sourceDeep.classList.add('arrow-line');
-      sourceDeep.setAttribute('cx', from.x);
-      sourceDeep.setAttribute('cy', from.y);
-      sourceDeep.setAttribute('rx', '24');
-      sourceDeep.setAttribute('ry', '7');
-      sourceDeep.setAttribute('fill', '#000');
-      svg.appendChild(sourceDeep);
+        const deep = document.createElementNS(SVG_NS, 'ellipse');
+        deep.classList.add('arrow-line');
+        deep.setAttribute('cx', p.x); deep.setAttribute('cy', p.y);
+        deep.setAttribute('rx', '24'); deep.setAttribute('ry', '7');
+        deep.setAttribute('fill', '#000');
+        svg.appendChild(deep);
+      });
 
-      // Dashed red falling trajectory
       const fallLine = document.createElementNS(SVG_NS, 'line');
       fallLine.classList.add('arrow-line', 'fall-trajectory');
-      fallLine.setAttribute('x1', from.x);
-      fallLine.setAttribute('y1', from.y + 15);
-      fallLine.setAttribute('x2', to.x);
-      fallLine.setAttribute('y2', to.y - 15);
+      fallLine.setAttribute('x1', from.x); fallLine.setAttribute('y1', from.y + 15);
+      fallLine.setAttribute('x2', to.x); fallLine.setAttribute('y2', to.y - 15);
       fallLine.setAttribute('stroke', '#e74c3c');
       fallLine.setAttribute('stroke-width', '5');
       fallLine.setAttribute('stroke-dasharray', '10,8');
       fallLine.setAttribute('stroke-linecap', 'round');
       svg.appendChild(fallLine);
-
-      // Destination - "impact" hole (smaller, darker)
-      const destRim = document.createElementNS(SVG_NS, 'ellipse');
-      destRim.classList.add('arrow-line');
-      destRim.setAttribute('cx', to.x);
-      destRim.setAttribute('cy', to.y);
-      destRim.setAttribute('rx', '38');
-      destRim.setAttribute('ry', '14');
-      destRim.setAttribute('fill', '#5d4037');
-      destRim.setAttribute('stroke', '#8b4513');
-      destRim.setAttribute('stroke-width', '3');
-      svg.appendChild(destRim);
-
-      const destHole = document.createElementNS(SVG_NS, 'ellipse');
-      destHole.classList.add('arrow-line');
-      destHole.setAttribute('cx', to.x);
-      destHole.setAttribute('cy', to.y);
-      destHole.setAttribute('rx', '30');
-      destHole.setAttribute('ry', '10');
-      destHole.setAttribute('fill', 'url(#pitGrad)');
-      svg.appendChild(destHole);
     }
 
     function updateScores() {
@@ -854,16 +637,18 @@
       return currentPos;
     }
 
+    // === New triggerChain with conflict + loop behavior ===
     async function triggerChain(team, pieceIdx, landedCell) {
+      const entryCell = landedCell; // remember where they first landed
       const visitedCells = new Set([landedCell]);
       let currentCell = landedCell;
       let chainCount = 0;
-      const maxChain = 10;
+      const maxChain = 12;
 
       while (chainCount < maxChain) {
         chainCount++;
-        let triggered = false;
 
+        // Treasure first
         if (isTreasureAt(currentCell)) {
           state.revealed.treasures.add(currentCell);
           state[`team${team}`].treasures++;
@@ -875,20 +660,21 @@
           updateScores();
         }
 
-        const snake = findSnakeFrom(currentCell);
+        // CONFLICT: snake AND pitfall at same cell → neutralized, no penalty
+        const snake = findBestSnakeFrom(currentCell);
         const pitfall = findPitfallFrom(currentCell);
         if (snake && pitfall) {
           state.revealed.snakes.add(currentCell);
           state.revealed.pitfalls.add(currentCell);
           const cell = cellElements[currentCell];
           cell.classList.add('conflict-reveal');
-          await showBanner(`⚠️ CONFLICT at ${currentCell}! Team ${team} skips next turn`, 'conflict', 2500);
+          await showBanner(`⚖️ NEUTRALIZED! Snake + Pitfall cancel out`, 'conflict', 2000);
           cell.classList.remove('conflict-reveal');
           renderRevealedItems();
-          state[`team${team}`].skipNext = true;
-          return;
+          return; // stay at currentCell, no penalty
         }
 
+        // SNAKE only — pick biggest target if multiple
         if (snake) {
           state.revealed.snakes.add(currentCell);
           const cell = cellElements[currentCell];
@@ -902,16 +688,22 @@
           await sleep(500);
           cellElements[snake.to].classList.remove('highlight');
           currentCell = snake.to;
-          triggered = true;
+
+          // LOOP: revisited a cell → revert to entry, no penalty
           if (visitedCells.has(currentCell)) {
-            await showBanner(`🔄 LOOP! Team ${team} skips next turn`, 'skip', 2000);
-            state[`team${team}`].skipNext = true;
+            await showBanner(`🔄 LOOP! Returning to cell ${entryCell}`, 'loop', 2200);
+            state[`team${team}`].pieces[pieceIdx] = entryCell;
+            renderPieces();
+            cellElements[entryCell].classList.add('highlight');
+            await sleep(500);
+            cellElements[entryCell].classList.remove('highlight');
             return;
           }
           visitedCells.add(currentCell);
           continue;
         }
 
+        // PITFALL only
         if (pitfall) {
           state.revealed.pitfalls.add(currentCell);
           const cell = cellElements[currentCell];
@@ -925,17 +717,21 @@
           await sleep(500);
           cellElements[pitfall.to].classList.remove('highlight');
           currentCell = pitfall.to;
-          triggered = true;
+
           if (visitedCells.has(currentCell)) {
-            await showBanner(`🔄 LOOP! Team ${team} skips next turn`, 'skip', 2000);
-            state[`team${team}`].skipNext = true;
+            await showBanner(`🔄 LOOP! Returning to cell ${entryCell}`, 'loop', 2200);
+            state[`team${team}`].pieces[pieceIdx] = entryCell;
+            renderPieces();
+            cellElements[entryCell].classList.add('highlight');
+            await sleep(500);
+            cellElements[entryCell].classList.remove('highlight');
             return;
           }
           visitedCells.add(currentCell);
           continue;
         }
 
-        if (!triggered) break;
+        break; // nothing triggered
       }
 
       if (currentCell === 25) {
@@ -970,13 +766,11 @@
         banner.classList.remove('hidden');
         boardWrap.classList.add('hidden');
         score.classList.add('hidden');
-        stopTimer();
       } else {
         banner.classList.add('hidden');
         boardWrap.classList.remove('hidden');
         score.classList.remove('hidden');
       }
-      renderTimer();
       updateGameStatusBadge();
     }
 
@@ -1007,27 +801,11 @@
         case 'movePiece':
           if (state.gameLocked) return;
           await showDice(msg.dice);
-          if (state[`team${msg.team}`].skipNext) {
-            await showBanner(`⏭️ Team ${msg.team} skips this turn!`, 'skip', 1800);
-            state[`team${msg.team}`].skipNext = false;
-            renderPieces();
-            if (state.firstMover === null) state.firstMover = msg.team;
-            if (state.finalTurnPending) {
-              state.finalTurnPending = false;
-              await lockGame();
-            }
-            return;
-          }
-          if (state.firstMover === null) state.firstMover = msg.team;
           const landedCell = await diceWalk(msg.team, msg.pieceIdx, msg.dice);
           await sleep(200);
           await triggerChain(msg.team, msg.pieceIdx, landedCell);
           if (checkAllPiecesAtGoal(msg.team)) {
             await showBanner(`🏆 Team ${msg.team} got all 4 pieces to GOAL!`, 'winner', 3000);
-          }
-          if (state.finalTurnPending) {
-            state.finalTurnPending = false;
-            await lockGame();
           }
           break;
         case 'switchTurn':
@@ -1036,19 +814,15 @@
           updateTurn();
           break;
         case 'reset':
-          state.teamA = { pieces: [1, 1, 1, 1], treasures: 0, skipNext: false };
-          state.teamB = { pieces: [1, 1, 1, 1], treasures: 0, skipNext: false };
+          state.teamA = { pieces: [1, 1, 1, 1], treasures: 0 };
+          state.teamB = { pieces: [1, 1, 1, 1], treasures: 0 };
           state.currentTurn = 'A';
           state.phase = 'setup';
           state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
-          state.firstMover = null;
-          state.timeUpReached = false;
-          state.finalTurnPending = false;
           state.gameLocked = false;
           document.getElementById('board').classList.remove('locked');
           document.getElementById('teamAPanel').classList.remove('winner');
           document.getElementById('teamBPanel').classList.remove('winner');
-          resetTimer();
           renderPieces();
           renderRevealedItems();
           updateTurn();
@@ -1058,9 +832,6 @@
           state.phase = 'playing';
           if (msg.items) state.items = msg.items;
           state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
-          state.firstMover = null;
-          state.timeUpReached = false;
-          state.finalTurnPending = false;
           state.gameLocked = false;
           document.getElementById('board').classList.remove('locked');
           document.getElementById('teamAPanel').classList.remove('winner');
@@ -1075,12 +846,9 @@
         case 'endGameNow':
           if (!state.gameLocked) await lockGame();
           break;
-        case 'timerStart': startTimer(); break;
-        case 'timerPause': stopTimer(); break;
-        case 'timerReset': resetTimer(msg.seconds || 900); state.timeUpReached = false; break;
-        case 'timerAdjust': adjustTimer(msg.delta); break;
       }
     }
   </script>
 </body>
 </html>
+``
