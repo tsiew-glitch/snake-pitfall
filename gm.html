@@ -104,23 +104,18 @@
     .setup-cell.start { background: #2d7a3d; }
     .setup-cell.goal { background: #d4af37; color: #1a1f3a; }
     .setup-cell.protected { opacity: 0.5; cursor: not-allowed; }
-    .setup-cell.source-selected {
-      background: #f39c12 !important;
-      animation: pulseSrc 0.6s infinite;
-    }
+    .setup-cell.source-selected { background: #f39c12 !important; animation: pulseSrc 0.6s infinite; }
     @keyframes pulseSrc { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-    .setup-cell.valid-target {
-      background: #16a085 !important;
-      animation: pulseTgt 0.8s infinite;
-    }
+    .setup-cell.valid-target { background: #16a085 !important; animation: pulseTgt 0.8s infinite; }
     @keyframes pulseTgt {
       0%, 100% { box-shadow: 0 0 0 rgba(22, 160, 133, 0); }
       50% { box-shadow: 0 0 15px rgba(22, 160, 133, 0.9); }
     }
     .setup-cell:active:not(.protected) { transform: scale(0.95); }
     .cell-num { opacity: 0.6; font-size: 0.85em; }
-    .cell-items { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
-    .item-tag { font-size: 0.85em; }
+    .cell-items { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; justify-content: center; }
+    .item-tag { font-size: 1em; }
+    .item-tag.conflict { color: #e74c3c; animation: pulseSrc 0.8s infinite; }
 
     #placedList {
       font-size: 0.85em; padding: 8px;
@@ -142,7 +137,6 @@
     #turnDisplay.team-a { background: rgba(74, 144, 226, 0.3); border: 2px solid #4a90e2; }
     #turnDisplay.team-b { background: rgba(231, 76, 60, 0.3); border: 2px solid #e74c3c; }
 
-    /* === Final Turn / Locked Banner === */
     #gameStatusBanner {
       text-align: center;
       font-size: 1.05em;
@@ -150,9 +144,9 @@
       padding: 10px;
       border-radius: 10px;
       margin-bottom: 8px;
-      animation: pulse 1.2s infinite;
+      animation: pulseBan 1.2s infinite;
     }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+    @keyframes pulseBan { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     #gameStatusBanner.hidden { display: none; }
     #gameStatusBanner.final-turn { background: rgba(243, 156, 18, 0.4); border: 2px solid #f39c12; }
     #gameStatusBanner.game-over { background: rgba(212, 175, 55, 0.5); border: 2px solid #d4af37; color: #1a1f3a; animation: none; }
@@ -211,16 +205,8 @@
     .piece-btn .piece-id { font-size: 1.3em; margin-right: 6px; }
     .piece-btn.team-a-piece { border-color: #4a90e2; }
     .piece-btn.team-b-piece { border-color: #e74c3c; }
-    .piece-btn.selected {
-      background: #1abc9c;
-      border-color: white;
-      box-shadow: 0 0 15px rgba(26, 188, 156, 0.7);
-    }
-    .piece-btn.at-goal {
-      background: #d4af37;
-      color: #1a1f3a;
-      opacity: 0.7;
-    }
+    .piece-btn.selected { background: #1abc9c; border-color: white; box-shadow: 0 0 15px rgba(26, 188, 156, 0.7); }
+    .piece-btn.at-goal { background: #d4af37; color: #1a1f3a; opacity: 0.7; }
     .piece-btn.at-goal::after { content: ' 🏁'; }
 
     .dice-row {
@@ -269,8 +255,13 @@
       padding: 8px;
       background: rgba(0,0,0,0.3);
       border-radius: 6px;
-      max-height: 150px;
+      max-height: 180px;
       overflow-y: auto;
+    }
+    #cheatSheet .conflict-warn {
+      color: #ffaa00;
+      font-weight: bold;
+      margin-top: 4px;
     }
 
     #firstMoverInfo {
@@ -305,11 +296,11 @@
     <div class="panel">
       <h2>🧰 Tool:</h2>
       <div id="toolSelector">
-        <button class="tool-btn snake active" id="toolSnake" onclick="selectTool('snake')">🟢 Snake<br>(up)</button>
-        <button class="tool-btn pitfall" id="toolPitfall" onclick="selectTool('pitfall')">🔴 Pitfall<br>(down)</button>
+        <button class="tool-btn snake active" id="toolSnake" onclick="selectTool('snake')">🐍 Snake<br>(up)</button>
+        <button class="tool-btn pitfall" id="toolPitfall" onclick="selectTool('pitfall')">🕳️ Pitfall<br>(down)</button>
         <button class="tool-btn treasure" id="toolTreasure" onclick="selectTool('treasure')">💎 Treasure</button>
       </div>
-      <div id="quotaDisplay">🟢 0/3 🔴 0/3 💎 0/3</div>
+      <div id="quotaDisplay">🐍 0/3 🕳️ 0/3 💎 0/3</div>
     </div>
 
     <div class="panel">
@@ -368,7 +359,7 @@
     </div>
 
     <div class="panel">
-      <h2>🔍 GM Cheat Sheet (hidden items)</h2>
+      <h2>🔍 GM Cheat Sheet</h2>
       <div id="cheatSheet">No items</div>
     </div>
 
@@ -402,7 +393,6 @@
     let selectedDice = null;
     let selectedPieceIdx = null;
 
-    // === Game flow tracking ===
     let firstMover = null;
     let timeUpReached = false;
     let finalTurnPending = false;
@@ -441,11 +431,7 @@
           timerRunning = false;
           clearInterval(timerInterval);
           timerInterval = null;
-          // Time-up: enable final-turn UI locally
-          if (!timeUpReached) {
-            timeUpReached = true;
-            handleTimeUp();
-          }
+          if (!timeUpReached) { timeUpReached = true; handleTimeUp(); }
         }
         renderTimerLocal();
       }, 1000);
@@ -477,7 +463,6 @@
       if (conn && conn.open) conn.send({ type: 'timerAdjust', delta: delta });
     }
 
-    // === Game flow logic ===
     function handleTimeUp() {
       if (firstMover === 'A') {
         finalTurnPending = true;
@@ -492,7 +477,6 @@
         updateGameStatusBanner();
         renderPieceSelector();
       } else {
-        // No one moved — just lock
         gameLocked = true;
         updateGameStatusBanner();
       }
@@ -508,19 +492,13 @@
         const color = currentTurn === 'A' ? '🔵' : '🔴';
         el.textContent = `🏁 FINAL TURN — Team ${currentTurn} ${color}`;
         el.classList.add('final-turn');
-      } else {
-        el.classList.add('hidden');
-      }
+      } else el.classList.add('hidden');
     }
 
     function updateFirstMoverInfo() {
       const el = document.getElementById('firstMoverInfo');
-      if (firstMover === null) {
-        el.textContent = 'First mover: not yet determined';
-      } else {
-        const color = firstMover === 'A' ? '🔵' : '🔴';
-        el.textContent = `First mover: ${color} Team ${firstMover}`;
-      }
+      if (firstMover === null) el.textContent = 'First mover: not yet determined';
+      else el.textContent = `First mover: ${firstMover === 'A' ? '🔵' : '🔴'} Team ${firstMover}`;
     }
 
     function endGameNow() {
@@ -534,7 +512,6 @@
       if (conn && conn.open) conn.send({ type: 'endGameNow' });
     }
 
-    // === Board helpers ===
     function getCellCoords(cellNum) {
       const rowFromBottom = Math.floor((cellNum - 1) / 5);
       const visualRow = 4 - rowFromBottom;
@@ -566,6 +543,16 @@
     function getTotalCount(team, type) { return items[team][type].length; }
     function isProtected(cellNum) { return cellNum === 1 || cellNum === 25; }
 
+    // Check if a cell has BOTH snake head and pitfall head (conflict)
+    function hasConflict(cellNum) {
+      let hasSnake = false, hasPitfall = false;
+      for (const team of ['A', 'B']) {
+        if (items[team].snakes.some(s => s.from === cellNum)) hasSnake = true;
+        if (items[team].pitfalls.some(p => p.from === cellNum)) hasPitfall = true;
+      }
+      return hasSnake && hasPitfall;
+    }
+
     function renderSetupBoard() {
       const board = document.getElementById('setupBoard');
       board.innerHTML = '';
@@ -587,20 +574,25 @@
     }
 
     function getCellItemsHtml(cellNum) {
+      const conflict = hasConflict(cellNum);
       let html = '<div class="cell-items">';
+      let snakeHead = false, pitfallHead = false;
       for (const team of ['A', 'B']) {
         items[team].snakes.forEach(s => {
-          if (s.from === cellNum) html += `<span class="item-tag">🟢↑</span>`;
-          if (s.to === cellNum) html += `<span class="item-tag" style="opacity:0.4;">🟢•</span>`;
+          if (s.from === cellNum) snakeHead = true;
+          if (s.to === cellNum) html += `<span class="item-tag" style="opacity:0.4;">🐍•</span>`;
         });
         items[team].pitfalls.forEach(p => {
-          if (p.from === cellNum) html += `<span class="item-tag">🔴↓</span>`;
-          if (p.to === cellNum) html += `<span class="item-tag" style="opacity:0.4;">🔴•</span>`;
+          if (p.from === cellNum) pitfallHead = true;
+          if (p.to === cellNum) html += `<span class="item-tag" style="opacity:0.4;">🕳️•</span>`;
         });
         items[team].treasures.forEach(t => {
           if (t === cellNum) html += `<span class="item-tag">💎</span>`;
         });
       }
+      if (snakeHead) html += `<span class="item-tag ${conflict ? 'conflict' : ''}">🐍</span>`;
+      if (pitfallHead) html += `<span class="item-tag ${conflict ? 'conflict' : ''}">🕳️</span>`;
+      if (conflict) html += `<span class="item-tag conflict">⚠️</span>`;
       html += '</div>';
       return html;
     }
@@ -627,7 +619,7 @@
         }
         sourceCell = cellNum;
         validTargets = targets;
-        showHint(`Tap green cell to set ${currentTool === 'snake' ? '🟢 snake' : '🔴 pitfall'} destination`);
+        showHint(`Tap green cell to set ${currentTool === 'snake' ? '🐍 snake' : '🕳️ pitfall'} destination`);
         renderSetupBoard();
         if (navigator.vibrate) navigator.vibrate(20);
       } else {
@@ -647,7 +639,7 @@
     function updateQuota() {
       const t = items[currentTeam];
       document.getElementById('quotaDisplay').innerHTML =
-        `Team ${currentTeam}: 🟢 ${t.snakes.length}/3 🔴 ${t.pitfalls.length}/3 💎 ${t.treasures.length}/3`;
+        `Team ${currentTeam}: 🐍 ${t.snakes.length}/3 🕳️ ${t.pitfalls.length}/3 💎 ${t.treasures.length}/3`;
     }
 
     function updatePlacedList() {
@@ -657,10 +649,16 @@
         const t = items[team];
         if (t.snakes.length || t.pitfalls.length || t.treasures.length) {
           html += `<div><strong>${color} Team ${team}:</strong></div>`;
-          t.snakes.forEach(s => html += `<div>&nbsp;🟢 ${s.from}→${s.to}</div>`);
-          t.pitfalls.forEach(p => html += `<div>&nbsp;🔴 ${p.from}→${p.to}</div>`);
+          t.snakes.forEach(s => html += `<div>&nbsp;🐍 ${s.from}→${s.to}</div>`);
+          t.pitfalls.forEach(p => html += `<div>&nbsp;🕳️ ${p.from}→${p.to}</div>`);
           if (t.treasures.length) html += `<div>&nbsp;💎 ${t.treasures.join(', ')}</div>`;
         }
+      }
+      // Conflict warnings
+      const conflictCells = [];
+      for (let c = 1; c <= 25; c++) if (hasConflict(c)) conflictCells.push(c);
+      if (conflictCells.length) {
+        html += `<div class="conflict-warn">⚠️ Conflict cells: ${conflictCells.join(', ')}</div>`;
       }
       document.getElementById('placedList').innerHTML = html || 'No items placed yet';
     }
@@ -672,10 +670,15 @@
         const t = items[team];
         if (t.snakes.length || t.pitfalls.length || t.treasures.length) {
           html += `<div><strong>${color} Team ${team}:</strong></div>`;
-          t.snakes.forEach(s => html += `<div>&nbsp;🟢 ${s.from}→${s.to}</div>`);
-          t.pitfalls.forEach(p => html += `<div>&nbsp;🔴 ${p.from}→${p.to}</div>`);
+          t.snakes.forEach(s => html += `<div>&nbsp;🐍 ${s.from}→${s.to}</div>`);
+          t.pitfalls.forEach(p => html += `<div>&nbsp;🕳️ ${p.from}→${p.to}</div>`);
           if (t.treasures.length) html += `<div>&nbsp;💎 ${t.treasures.join(', ')}</div>`;
         }
+      }
+      const conflictCells = [];
+      for (let c = 1; c <= 25; c++) if (hasConflict(c)) conflictCells.push(c);
+      if (conflictCells.length) {
+        html += `<div class="conflict-warn">⚠️ Conflict cells (skip turn): ${conflictCells.join(', ')}</div>`;
       }
       document.getElementById('cheatSheet').innerHTML = html || 'No items';
     }
@@ -789,7 +792,6 @@
         btn.onclick = () => selectPiece(idx);
         container.appendChild(btn);
       });
-      // Disable switch turn during final turn
       document.getElementById('switchTurnBtn').disabled = finalTurnPending || gameLocked;
       document.getElementById('endGameBtn').disabled = gameLocked;
       updateMoveBtn();
@@ -816,15 +818,12 @@
     function updateMoveBtn() {
       const moveBtn = document.getElementById('moveBtn');
       moveBtn.disabled = gameLocked || !(selectedPieceIdx !== null && selectedDice);
-      if (gameLocked) {
-        moveBtn.textContent = '🔒 Game Locked';
-      } else if (selectedPieceIdx !== null && selectedDice) {
+      if (gameLocked) moveBtn.textContent = '🔒 Game Locked';
+      else if (selectedPieceIdx !== null && selectedDice) {
         const color = currentTurn === 'A' ? '🔵' : '🔴';
         const label = finalTurnPending ? '🏁 FINAL Move' : '▶️ Move';
         moveBtn.textContent = `${label} ${color}${PIECE_NUMS[selectedPieceIdx]} by ${selectedDice}`;
-      } else {
-        moveBtn.textContent = '▶️ Select piece + dice';
-      }
+      } else moveBtn.textContent = '▶️ Select piece + dice';
     }
 
     function sendMove() {
@@ -833,18 +832,8 @@
       teamPieces[currentTurn][selectedPieceIdx] = Math.min(
         teamPieces[currentTurn][selectedPieceIdx] + selectedDice, 25
       );
-      // Record first mover locally
-      if (firstMover === null) {
-        firstMover = currentTurn;
-        updateFirstMoverInfo();
-      }
-      conn.send({
-        type: 'movePiece',
-        team: currentTurn,
-        pieceIdx: selectedPieceIdx,
-        dice: selectedDice
-      });
-      // If this was the final turn, lock immediately on GM side
+      if (firstMover === null) { firstMover = currentTurn; updateFirstMoverInfo(); }
+      conn.send({ type: 'movePiece', team: currentTurn, pieceIdx: selectedPieceIdx, dice: selectedDice });
       if (finalTurnPending) {
         finalTurnPending = false;
         gameLocked = true;
