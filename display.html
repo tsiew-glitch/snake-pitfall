@@ -47,28 +47,14 @@
       letter-spacing: 2px;
     }
     #timer.hidden { display: none; }
-    #timer.warning {
-      background: rgba(243, 156, 18, 0.3);
-      border-color: #f39c12;
-      color: #f39c12;
-    }
-    #timer.urgent {
-      background: rgba(231, 76, 60, 0.4);
-      border-color: #e74c3c;
-      color: #ffaaaa;
-      animation: urgentPulse 0.6s infinite;
-    }
-    #timer.paused {
-      background: rgba(155, 89, 182, 0.3);
-      border-color: #9b59b6;
-      color: #d3a4ee;
-    }
+    #timer.warning { background: rgba(243, 156, 18, 0.3); border-color: #f39c12; color: #f39c12; }
+    #timer.urgent { background: rgba(231, 76, 60, 0.4); border-color: #e74c3c; color: #ffaaaa; animation: urgentPulse 0.6s infinite; }
+    #timer.paused { background: rgba(155, 89, 182, 0.3); border-color: #9b59b6; color: #d3a4ee; }
     @keyframes urgentPulse {
       0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(231,76,60,0); }
       50% { transform: scale(1.08); box-shadow: 0 0 30px rgba(231,76,60,0.7); }
     }
 
-    /* === Final Turn / Game Over Indicator === */
     #gameStatusBadge {
       font-size: 1.3em;
       font-weight: bold;
@@ -77,19 +63,9 @@
       animation: pulse 1s infinite;
     }
     #gameStatusBadge.hidden { display: none; }
-    #gameStatusBadge.final-turn-a {
-      background: rgba(74, 144, 226, 0.4);
-      border: 2px solid #4a90e2;
-    }
-    #gameStatusBadge.final-turn-b {
-      background: rgba(231, 76, 60, 0.4);
-      border: 2px solid #e74c3c;
-    }
-    #gameStatusBadge.game-over {
-      background: rgba(212, 175, 55, 0.5);
-      border: 2px solid #d4af37;
-      animation: none;
-    }
+    #gameStatusBadge.final-turn-a { background: rgba(74, 144, 226, 0.4); border: 2px solid #4a90e2; }
+    #gameStatusBadge.final-turn-b { background: rgba(231, 76, 60, 0.4); border: 2px solid #e74c3c; }
+    #gameStatusBadge.game-over { background: rgba(212, 175, 55, 0.5); border: 2px solid #d4af37; animation: none; }
 
     #phaseBanner {
       font-size: 2em;
@@ -100,26 +76,38 @@
       margin: 40px 0;
       animation: pulse 2s infinite;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     #phaseBanner.hidden { display: none; }
 
+    /* === Board with SVG overlay === */
+    #boardWrapper {
+      position: relative;
+      width: min(65vh, 88vw);
+      aspect-ratio: 1 / 1;
+    }
+    #boardWrapper.hidden { display: none; }
     #board {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       grid-template-rows: repeat(5, 1fr);
       gap: 5px;
-      width: min(65vh, 88vw);
-      aspect-ratio: 1 / 1;
+      width: 100%;
+      height: 100%;
       background: rgba(255,255,255,0.05);
       padding: 8px;
       border-radius: 16px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      position: relative;
     }
-    #board.hidden { display: none; }
     #board.locked { opacity: 0.85; pointer-events: none; }
+    #arrowSvg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
     .cell {
       background: linear-gradient(145deg, #2a3568, #1e2850);
       border-radius: 10px;
@@ -141,13 +129,14 @@
       left: 5px;
       font-size: 0.85em;
       opacity: 0.7;
+      z-index: 4;
     }
     .pieces {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 2px;
       font-size: 1.1em;
-      z-index: 3;
+      z-index: 6;
       max-width: 100%;
     }
     .piece {
@@ -157,15 +146,33 @@
       min-width: 1.6em;
       line-height: 1;
     }
-    .revealed-items {
+    /* Item icons on cells */
+    .item-icons {
       position: absolute;
-      bottom: 3px;
-      right: 3px;
-      font-size: 0.65em;
+      bottom: 2px;
+      right: 4px;
       display: flex;
-      gap: 2px;
-      z-index: 1;
+      gap: 3px;
+      font-size: 1.5em;
+      z-index: 4;
+      line-height: 1;
     }
+    .item-icon { filter: drop-shadow(0 0 4px rgba(0,0,0,0.8)); }
+    .item-icon.treasure {
+      animation: treasureGlow 1.5s infinite ease-in-out;
+    }
+    @keyframes treasureGlow {
+      0%, 100% { filter: drop-shadow(0 0 4px rgba(255,215,0,0.6)); transform: scale(1); }
+      50% { filter: drop-shadow(0 0 14px rgba(255,215,0,1)); transform: scale(1.15); }
+    }
+    .item-icon.conflict {
+      animation: conflictPulse 0.8s infinite;
+    }
+    @keyframes conflictPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
     .cell.highlight {
       background: linear-gradient(145deg, #f39c12, #d68910) !important;
       animation: flash 0.4s ease;
@@ -180,6 +187,10 @@
     }
     .cell.treasure-reveal {
       background: linear-gradient(145deg, #d4af37, #f1c40f) !important;
+      animation: revealFlash 0.6s ease;
+    }
+    .cell.conflict-reveal {
+      background: linear-gradient(145deg, #8e44ad, #6c3483) !important;
       animation: revealFlash 0.6s ease;
     }
     @keyframes flash {
@@ -245,6 +256,7 @@
     #bigBanner.pitfall { background: #c0392b; color: white; }
     #bigBanner.treasure { background: #d4af37; color: #1a1f3a; }
     #bigBanner.skip { background: #9b59b6; color: white; }
+    #bigBanner.conflict { background: #8e44ad; color: white; }
     #bigBanner.goal { background: #f39c12; color: white; }
     #bigBanner.timeup { background: #e74c3c; color: white; font-size: 3.5em; }
     #bigBanner.finalturn { background: #f39c12; color: white; font-size: 3em; }
@@ -282,7 +294,19 @@
 
   <div id="phaseBanner" class="hidden">🤫 Teams are setting up the board...</div>
 
-  <div id="board"></div>
+  <div id="boardWrapper" class="hidden">
+    <div id="board"></div>
+    <svg id="arrowSvg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+      <defs>
+        <marker id="arrowheadSnake" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+          <polygon points="0 0, 10 5, 0 10" fill="#27ae60" />
+        </marker>
+        <marker id="arrowheadPitfall" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+          <polygon points="0 0, 10 5, 0 10" fill="#e74c3c" />
+        </marker>
+      </defs>
+    </svg>
+  </div>
 
   <div id="scorePanel" class="hidden">
     <div class="team-score active" id="teamAPanel">
@@ -314,20 +338,17 @@
         B: { snakes: [], pitfalls: [], treasures: [] }
       },
       revealed: { snakes: new Set(), pitfalls: new Set(), treasures: new Set() },
-      // === Game flow tracking ===
-      firstMover: null,       // 'A' or 'B' — who moved first this round
-      timeUpReached: false,   // becomes true when timer hits 0
-      finalTurnPending: false,// true when waiting for last team's final move
-      gameLocked: false       // true after game-over
+      firstMover: null,
+      timeUpReached: false,
+      finalTurnPending: false,
+      gameLocked: false
     };
 
     const PIECE_NUMS = ['①', '②', '③', '④'];
     function pieceEmoji(team, idx) {
-      const color = team === 'A' ? '🔵' : '🔴';
-      return color + PIECE_NUMS[idx];
+      return (team === 'A' ? '🔵' : '🔴') + PIECE_NUMS[idx];
     }
 
-    // === Timer ===
     let timerSeconds = 15 * 60;
     let timerRunning = false;
     let timerInterval = null;
@@ -347,11 +368,8 @@
       if (!timerRunning && timerSeconds > 0) {
         timerEl.classList.add('paused');
         timerEl.textContent = `⏸️ ${formatTime(timerSeconds)}`;
-      } else if (timerSeconds <= 30) {
-        timerEl.classList.add('urgent');
-      } else if (timerSeconds <= 60) {
-        timerEl.classList.add('warning');
-      }
+      } else if (timerSeconds <= 30) timerEl.classList.add('urgent');
+      else if (timerSeconds <= 60) timerEl.classList.add('warning');
     }
 
     function startTimer() {
@@ -387,13 +405,9 @@
       renderTimer();
     }
 
-    // === Game flow: Time-up logic ===
     async function onTimeUp() {
       await showBanner("⏰ TIME'S UP!", 'timeup', 2500);
-
-      // Determine if a final turn is needed
       if (state.firstMover === 'A') {
-        // Team B needs one more move to equalize
         state.finalTurnPending = true;
         state.currentTurn = 'B';
         updateTurn();
@@ -405,10 +419,7 @@
         updateTurn();
         updateGameStatusBadge();
         await showBanner("🏁 FINAL TURN — Team A", 'finalturn', 2500);
-      } else {
-        // No one moved yet — just lock
-        await lockGame();
-      }
+      } else await lockGame();
     }
 
     async function lockGame() {
@@ -437,16 +448,12 @@
     function updateGameStatusBadge() {
       const badge = document.getElementById('gameStatusBadge');
       badge.classList.remove('hidden', 'final-turn-a', 'final-turn-b', 'game-over');
-      if (state.gameLocked) {
-        badge.textContent = '🏆 Game Over';
-        badge.classList.add('game-over');
-      } else if (state.finalTurnPending) {
+      if (state.gameLocked) { badge.textContent = '🏆 Game Over'; badge.classList.add('game-over'); }
+      else if (state.finalTurnPending) {
         const t = state.currentTurn;
         badge.textContent = `🏁 Final Turn — Team ${t}`;
         badge.classList.add(t === 'A' ? 'final-turn-a' : 'final-turn-b');
-      } else {
-        badge.classList.add('hidden');
-      }
+      } else badge.classList.add('hidden');
     }
 
     // === Board ===
@@ -455,6 +462,24 @@
       const rowStart = rowFromBottom * 5 + 1;
       if (rowFromBottom % 2 === 0) return rowStart + visualCol;
       return rowStart + (4 - visualCol);
+    }
+
+    function getCellCoords(cellNum) {
+      const rowFromBottom = Math.floor((cellNum - 1) / 5);
+      const visualRow = 4 - rowFromBottom;
+      const posInRow = (cellNum - 1) % 5;
+      const visualCol = (rowFromBottom % 2 === 0) ? posInRow : 4 - posInRow;
+      return { visualRow, visualCol };
+    }
+
+    // Get pixel center of cell in SVG viewBox (1000x1000)
+    function getCellCenter(cellNum) {
+      const { visualRow, visualCol } = getCellCoords(cellNum);
+      const cellSize = 1000 / 5;
+      return {
+        x: visualCol * cellSize + cellSize / 2,
+        y: visualRow * cellSize + cellSize / 2
+      };
     }
 
     const board = document.getElementById('board');
@@ -469,7 +494,7 @@
         cell.innerHTML = `
           <div class="cell-number">${cellNum}</div>
           <div class="pieces" id="pieces-${cellNum}"></div>
-          <div class="revealed-items" id="items-${cellNum}"></div>
+          <div class="item-icons" id="items-${cellNum}"></div>
         `;
         board.appendChild(cell);
         cellElements[cellNum] = cell;
@@ -477,9 +502,7 @@
     }
 
     function renderPieces() {
-      for (let i = 1; i <= 25; i++) {
-        document.getElementById(`pieces-${i}`).innerHTML = '';
-      }
+      for (let i = 1; i <= 25; i++) document.getElementById(`pieces-${i}`).innerHTML = '';
       state.teamA.pieces.forEach((pos, idx) => {
         document.getElementById(`pieces-${pos}`).innerHTML += `<span class="piece">${pieceEmoji('A', idx)}</span>`;
       });
@@ -487,20 +510,6 @@
         document.getElementById(`pieces-${pos}`).innerHTML += `<span class="piece">${pieceEmoji('B', idx)}</span>`;
       });
       updateScores();
-    }
-
-    function renderRevealedItems() {
-      for (let i = 1; i <= 25; i++) {
-        document.getElementById(`items-${i}`).innerHTML = '';
-      }
-      state.revealed.snakes.forEach(fromCell => {
-        const item = findSnakeFrom(fromCell);
-        if (item) document.getElementById(`items-${fromCell}`).innerHTML += `<span>🟢↑${item.to}</span>`;
-      });
-      state.revealed.pitfalls.forEach(fromCell => {
-        const item = findPitfallFrom(fromCell);
-        if (item) document.getElementById(`items-${fromCell}`).innerHTML += `<span>🔴↓${item.to}</span>`;
-      });
     }
 
     function findSnakeFrom(cellNum) {
@@ -519,10 +528,74 @@
     }
     function isTreasureAt(cellNum) {
       if (state.revealed.treasures.has(cellNum)) return false;
-      for (const team of ['A', 'B']) {
-        if (state.items[team].treasures.includes(cellNum)) return true;
-      }
+      for (const team of ['A', 'B']) if (state.items[team].treasures.includes(cellNum)) return true;
       return false;
+    }
+
+    // === Render revealed items as icons + SVG arrows ===
+    function renderRevealedItems() {
+      for (let i = 1; i <= 25; i++) document.getElementById(`items-${i}`).innerHTML = '';
+
+      // Clear existing arrows (keep defs)
+      const svg = document.getElementById('arrowSvg');
+      const arrows = svg.querySelectorAll('.arrow-line');
+      arrows.forEach(a => a.remove());
+
+      state.revealed.snakes.forEach(fromCell => {
+        const item = findSnakeFrom(fromCell);
+        if (!item) return;
+        const hasConflict = findPitfallFrom(fromCell) && state.revealed.pitfalls.has(fromCell);
+        const iconHTML = hasConflict
+          ? `<span class="item-icon conflict">🐍⚠️</span>`
+          : `<span class="item-icon">🐍</span>`;
+        document.getElementById(`items-${fromCell}`).innerHTML += iconHTML;
+        // Draw curved arrow from this cell to snake.to
+        drawArrow(fromCell, item.to, '#27ae60', 'arrowheadSnake', true);
+      });
+
+      state.revealed.pitfalls.forEach(fromCell => {
+        const item = findPitfallFrom(fromCell);
+        if (!item) return;
+        const hasSnake = findSnakeFrom(fromCell) && state.revealed.snakes.has(fromCell);
+        const iconHTML = hasSnake
+          ? `<span class="item-icon conflict">🕳️⚠️</span>`
+          : `<span class="item-icon">🕳️</span>`;
+        document.getElementById(`items-${fromCell}`).innerHTML += iconHTML;
+        drawArrow(fromCell, item.to, '#e74c3c', 'arrowheadPitfall', false);
+      });
+
+      // Treasures (still hidden if not claimed; revealed/claimed treasures don't show on display)
+      // Note: treasures disappear on claim, so we don't render them after reveal
+    }
+
+    function drawArrow(fromCell, toCell, color, markerId, curved) {
+      const from = getCellCenter(fromCell);
+      const to = getCellCenter(toCell);
+      const svg = document.getElementById('arrowSvg');
+      let pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      pathEl.classList.add('arrow-line');
+
+      if (curved) {
+        // Curved path for snakes - bezier curve
+        const midX = (from.x + to.x) / 2;
+        const midY = (from.y + to.y) / 2;
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const perpX = -dy * 0.3;
+        const perpY = dx * 0.3;
+        const ctrlX = midX + perpX;
+        const ctrlY = midY + perpY;
+        pathEl.setAttribute('d', `M ${from.x} ${from.y} Q ${ctrlX} ${ctrlY} ${to.x} ${to.y}`);
+      } else {
+        // Straight line for pitfalls
+        pathEl.setAttribute('d', `M ${from.x} ${from.y} L ${to.x} ${to.y}`);
+      }
+      pathEl.setAttribute('stroke', color);
+      pathEl.setAttribute('stroke-width', '8');
+      pathEl.setAttribute('fill', 'none');
+      pathEl.setAttribute('opacity', '0.85');
+      pathEl.setAttribute('marker-end', `url(#${markerId})`);
+      svg.appendChild(pathEl);
     }
 
     function updateScores() {
@@ -579,14 +652,18 @@
       return currentPos;
     }
 
+    // === Trigger chain with conflict detection ===
     async function triggerChain(team, pieceIdx, landedCell) {
       const visitedCells = new Set([landedCell]);
       let currentCell = landedCell;
       let chainCount = 0;
       const maxChain = 10;
+
       while (chainCount < maxChain) {
         chainCount++;
         let triggered = false;
+
+        // Treasure first
         if (isTreasureAt(currentCell)) {
           state.revealed.treasures.add(currentCell);
           state[`team${team}`].treasures++;
@@ -597,12 +674,29 @@
           renderRevealedItems();
           updateScores();
         }
+
+        // CONFLICT CHECK: Does this cell have BOTH a snake head AND pitfall head?
         const snake = findSnakeFrom(currentCell);
+        const pitfall = findPitfallFrom(currentCell);
+        if (snake && pitfall) {
+          // Reveal both, then stop + skip turn
+          state.revealed.snakes.add(currentCell);
+          state.revealed.pitfalls.add(currentCell);
+          const cell = cellElements[currentCell];
+          cell.classList.add('conflict-reveal');
+          await showBanner(`⚠️ CONFLICT at ${currentCell}! Team ${team} skips next turn`, 'conflict', 2500);
+          cell.classList.remove('conflict-reveal');
+          renderRevealedItems();
+          state[`team${team}`].skipNext = true;
+          return;
+        }
+
+        // Snake only
         if (snake) {
           state.revealed.snakes.add(currentCell);
           const cell = cellElements[currentCell];
           cell.classList.add('snake-reveal');
-          await showBanner(`🟢 SNAKE! ${currentCell} ↑ ${snake.to}`, 'snake', 1400);
+          await showBanner(`🐍 SNAKE! ${currentCell} ↑ ${snake.to}`, 'snake', 1400);
           cell.classList.remove('snake-reveal');
           renderRevealedItems();
           state[`team${team}`].pieces[pieceIdx] = snake.to;
@@ -620,12 +714,13 @@
           visitedCells.add(currentCell);
           continue;
         }
-        const pitfall = findPitfallFrom(currentCell);
+
+        // Pitfall only
         if (pitfall) {
           state.revealed.pitfalls.add(currentCell);
           const cell = cellElements[currentCell];
           cell.classList.add('pitfall-reveal');
-          await showBanner(`🔴 PITFALL! ${currentCell} ↓ ${pitfall.to}`, 'pitfall', 1400);
+          await showBanner(`🕳️ PITFALL! ${currentCell} ↓ ${pitfall.to}`, 'pitfall', 1400);
           cell.classList.remove('pitfall-reveal');
           renderRevealedItems();
           state[`team${team}`].pieces[pieceIdx] = pitfall.to;
@@ -643,14 +738,15 @@
           visitedCells.add(currentCell);
           continue;
         }
+
         if (!triggered) break;
       }
+
       if (currentCell === 25) {
         await showBanner(`🏁 ${pieceEmoji(team, pieceIdx)} reached the GOAL!`, 'goal', 1500);
       }
     }
 
-    // === Check early win: all 4 pieces at 25 ===
     function checkAllPiecesAtGoal(team) {
       return state[`team${team}`].pieces.every(p => p === 25);
     }
@@ -672,16 +768,16 @@
 
     function updatePhase() {
       const banner = document.getElementById('phaseBanner');
-      const boardEl = document.getElementById('board');
+      const boardWrap = document.getElementById('boardWrapper');
       const score = document.getElementById('scorePanel');
       if (state.phase === 'setup') {
         banner.classList.remove('hidden');
-        boardEl.classList.add('hidden');
+        boardWrap.classList.add('hidden');
         score.classList.add('hidden');
         stopTimer();
       } else {
         banner.classList.add('hidden');
-        boardEl.classList.remove('hidden');
+        boardWrap.classList.remove('hidden');
         score.classList.remove('hidden');
       }
       renderTimer();
@@ -695,7 +791,6 @@
     const ROOM_ID = 'snake-pitfall-2026-display';
     const statusEl = document.getElementById('status');
     const peer = new Peer(ROOM_ID, { debug: 2 });
-
     peer.on('open', () => { statusEl.textContent = '✅ Ready'; });
     peer.on('connection', (conn) => {
       statusEl.textContent = '🟢 GM Connected';
@@ -714,35 +809,26 @@
     async function handleAction(msg) {
       switch (msg.type) {
         case 'movePiece':
-          if (state.gameLocked) return; // ignore moves after game-over
+          if (state.gameLocked) return;
           await showDice(msg.dice);
           if (state[`team${msg.team}`].skipNext) {
             await showBanner(`⏭️ Team ${msg.team} skips this turn!`, 'skip', 1800);
             state[`team${msg.team}`].skipNext = false;
             renderPieces();
-            // Even a skipped turn registers first mover
             if (state.firstMover === null) state.firstMover = msg.team;
-            // After final turn, lock the game
             if (state.finalTurnPending) {
               state.finalTurnPending = false;
               await lockGame();
             }
             return;
           }
-          // Record first mover
           if (state.firstMover === null) state.firstMover = msg.team;
-
           const landedCell = await diceWalk(msg.team, msg.pieceIdx, msg.dice);
           await sleep(200);
           await triggerChain(msg.team, msg.pieceIdx, landedCell);
-
-          // Check early win (all 4 pieces at 25)
           if (checkAllPiecesAtGoal(msg.team)) {
             await showBanner(`🏆 Team ${msg.team} got all 4 pieces to GOAL!`, 'winner', 3000);
-            // Don't auto-lock — let GM decide, but show banner
           }
-
-          // If final turn was active, lock the game after this move
           if (state.finalTurnPending) {
             state.finalTurnPending = false;
             await lockGame();
@@ -791,7 +877,6 @@
           updatePhase();
           break;
         case 'endGameNow':
-          // GM manually ends the game (e.g., team got all 4 to goal early)
           if (!state.gameLocked) await lockGame();
           break;
         case 'timerStart': startTimer(); break;
