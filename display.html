@@ -79,7 +79,6 @@
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
     #phaseBanner.hidden { display: none; }
 
-    /* === Board with SVG overlay === */
     #boardWrapper {
       position: relative;
       width: min(65vh, 88vw);
@@ -146,28 +145,25 @@
       min-width: 1.6em;
       line-height: 1;
     }
-    /* Item icons on cells */
     .item-icons {
       position: absolute;
-      bottom: 2px;
+      top: 2px;
       right: 4px;
       display: flex;
       gap: 3px;
-      font-size: 1.5em;
+      font-size: 0.9em;
       z-index: 4;
       line-height: 1;
     }
-    .item-icon { filter: drop-shadow(0 0 4px rgba(0,0,0,0.8)); }
     .item-icon.treasure {
+      font-size: 1.5em;
       animation: treasureGlow 1.5s infinite ease-in-out;
     }
     @keyframes treasureGlow {
       0%, 100% { filter: drop-shadow(0 0 4px rgba(255,215,0,0.6)); transform: scale(1); }
       50% { filter: drop-shadow(0 0 14px rgba(255,215,0,1)); transform: scale(1.15); }
     }
-    .item-icon.conflict {
-      animation: conflictPulse 0.8s infinite;
-    }
+    .item-icon.conflict { animation: conflictPulse 0.8s infinite; color: #ff9800; }
     @keyframes conflictPulse {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.2); }
@@ -201,6 +197,38 @@
       0% { transform: scale(1); }
       30% { transform: scale(1.25); box-shadow: 0 0 30px rgba(255,255,255,0.9); }
       100% { transform: scale(1); }
+    }
+
+    /* Cute snake animation */
+    .snake-body {
+      animation: snakeWiggle 2s infinite ease-in-out;
+      transform-origin: center;
+    }
+    @keyframes snakeWiggle {
+      0%, 100% { opacity: 0.85; }
+      50% { opacity: 1; }
+    }
+    .snake-head { animation: headBob 1.5s infinite ease-in-out; }
+    @keyframes headBob {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+    }
+    .snake-tongue { animation: tongueFlick 0.8s infinite; }
+    @keyframes tongueFlick {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Cute pitfall animation */
+    .pit-hole-source { animation: pitPulse 2s infinite ease-in-out; transform-origin: center; }
+    @keyframes pitPulse {
+      0%, 100% { opacity: 0.95; }
+      50% { opacity: 0.7; }
+    }
+    .fall-trajectory { animation: fallShimmer 1.5s infinite; }
+    @keyframes fallShimmer {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
     }
 
     #scorePanel {
@@ -298,12 +326,19 @@
     <div id="board"></div>
     <svg id="arrowSvg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
       <defs>
-        <marker id="arrowheadSnake" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-          <polygon points="0 0, 10 5, 0 10" fill="#27ae60" />
-        </marker>
-        <marker id="arrowheadPitfall" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
-          <polygon points="0 0, 10 5, 0 10" fill="#e74c3c" />
-        </marker>
+        <radialGradient id="snakeBodyGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#52d685" />
+          <stop offset="100%" stop-color="#1e7d3f" />
+        </radialGradient>
+        <radialGradient id="snakeHeadGrad" cx="40%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#7be899" />
+          <stop offset="100%" stop-color="#1e7d3f" />
+        </radialGradient>
+        <radialGradient id="pitGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#000" />
+          <stop offset="70%" stop-color="#1a1a1a" />
+          <stop offset="100%" stop-color="#3d2817" />
+        </radialGradient>
       </defs>
     </svg>
   </div>
@@ -456,7 +491,6 @@
       } else badge.classList.add('hidden');
     }
 
-    // === Board ===
     function getCellNumberAt(visualRow, visualCol) {
       const rowFromBottom = 4 - visualRow;
       const rowStart = rowFromBottom * 5 + 1;
@@ -472,7 +506,6 @@
       return { visualRow, visualCol };
     }
 
-    // Get pixel center of cell in SVG viewBox (1000x1000)
     function getCellCenter(cellNum) {
       const { visualRow, visualCol } = getCellCoords(cellNum);
       const cellSize = 1000 / 5;
@@ -532,70 +565,239 @@
       return false;
     }
 
-    // === Render revealed items as icons + SVG arrows ===
     function renderRevealedItems() {
       for (let i = 1; i <= 25; i++) document.getElementById(`items-${i}`).innerHTML = '';
 
-      // Clear existing arrows (keep defs)
+      // Clear existing SVG drawings (keep defs)
       const svg = document.getElementById('arrowSvg');
-      const arrows = svg.querySelectorAll('.arrow-line');
-      arrows.forEach(a => a.remove());
+      const oldDrawings = svg.querySelectorAll('.arrow-line');
+      oldDrawings.forEach(a => a.remove());
 
+      // Track which cells have which heads to detect conflict
+      const cellsWithSnakeHead = new Set();
+      const cellsWithPitfallHead = new Set();
+      state.revealed.snakes.forEach(c => cellsWithSnakeHead.add(c));
+      state.revealed.pitfalls.forEach(c => cellsWithPitfallHead.add(c));
+
+      // Draw snakes
       state.revealed.snakes.forEach(fromCell => {
         const item = findSnakeFrom(fromCell);
         if (!item) return;
-        const hasConflict = findPitfallFrom(fromCell) && state.revealed.pitfalls.has(fromCell);
-        const iconHTML = hasConflict
-          ? `<span class="item-icon conflict">🐍⚠️</span>`
-          : `<span class="item-icon">🐍</span>`;
-        document.getElementById(`items-${fromCell}`).innerHTML += iconHTML;
-        // Draw curved arrow from this cell to snake.to
-        drawArrow(fromCell, item.to, '#27ae60', 'arrowheadSnake', true);
+        const conflict = cellsWithPitfallHead.has(fromCell);
+        drawCuteSnake(fromCell, item.to);
+        // Small corner icon as marker
+        document.getElementById(`items-${fromCell}`).innerHTML += conflict
+          ? `<span class="item-icon conflict">⚠️</span>`
+          : '';
       });
 
+      // Draw pitfalls
       state.revealed.pitfalls.forEach(fromCell => {
         const item = findPitfallFrom(fromCell);
         if (!item) return;
-        const hasSnake = findSnakeFrom(fromCell) && state.revealed.snakes.has(fromCell);
-        const iconHTML = hasSnake
-          ? `<span class="item-icon conflict">🕳️⚠️</span>`
-          : `<span class="item-icon">🕳️</span>`;
-        document.getElementById(`items-${fromCell}`).innerHTML += iconHTML;
-        drawArrow(fromCell, item.to, '#e74c3c', 'arrowheadPitfall', false);
+        const conflict = cellsWithSnakeHead.has(fromCell);
+        drawCutePitfall(fromCell, item.to);
+        if (conflict && !cellsWithSnakeHead.has(fromCell)) {
+          document.getElementById(`items-${fromCell}`).innerHTML += `<span class="item-icon conflict">⚠️</span>`;
+        }
       });
-
-      // Treasures (still hidden if not claimed; revealed/claimed treasures don't show on display)
-      // Note: treasures disappear on claim, so we don't render them after reveal
     }
 
-    function drawArrow(fromCell, toCell, color, markerId, curved) {
+    // === Cute Snake Drawing ===
+    function drawCuteSnake(fromCell, toCell) {
       const from = getCellCenter(fromCell);
       const to = getCellCenter(toCell);
       const svg = document.getElementById('arrowSvg');
-      let pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      pathEl.classList.add('arrow-line');
+      const SVG_NS = 'http://www.w3.org/2000/svg';
 
-      if (curved) {
-        // Curved path for snakes - bezier curve
-        const midX = (from.x + to.x) / 2;
-        const midY = (from.y + to.y) / 2;
-        const dx = to.x - from.x;
-        const dy = to.y - from.y;
-        const perpX = -dy * 0.3;
-        const perpY = dx * 0.3;
-        const ctrlX = midX + perpX;
-        const ctrlY = midY + perpY;
-        pathEl.setAttribute('d', `M ${from.x} ${from.y} Q ${ctrlX} ${ctrlY} ${to.x} ${to.y}`);
-      } else {
-        // Straight line for pitfalls
-        pathEl.setAttribute('d', `M ${from.x} ${from.y} L ${to.x} ${to.y}`);
-      }
-      pathEl.setAttribute('stroke', color);
-      pathEl.setAttribute('stroke-width', '8');
-      pathEl.setAttribute('fill', 'none');
-      pathEl.setAttribute('opacity', '0.85');
-      pathEl.setAttribute('marker-end', `url(#${markerId})`);
-      svg.appendChild(pathEl);
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const perpX = -dy / dist;
+      const perpY = dx / dist;
+      const wave = Math.min(dist * 0.35, 60);
+
+      // Wavy path with two control points (S-curve)
+      const ctrl1X = from.x + dx * 0.3 + perpX * wave;
+      const ctrl1Y = from.y + dy * 0.3 + perpY * wave;
+      const ctrl2X = from.x + dx * 0.7 - perpX * wave;
+      const ctrl2Y = from.y + dy * 0.7 - perpY * wave;
+      const pathD = `M ${from.x} ${from.y} C ${ctrl1X} ${ctrl1Y}, ${ctrl2X} ${ctrl2Y}, ${to.x} ${to.y}`;
+
+      // Outer body (dark green outline)
+      const outerBody = document.createElementNS(SVG_NS, 'path');
+      outerBody.classList.add('arrow-line', 'snake-body');
+      outerBody.setAttribute('d', pathD);
+      outerBody.setAttribute('stroke', '#1e7d3f');
+      outerBody.setAttribute('stroke-width', '32');
+      outerBody.setAttribute('stroke-linecap', 'round');
+      outerBody.setAttribute('fill', 'none');
+      svg.appendChild(outerBody);
+
+      // Main body (vibrant green)
+      const mainBody = document.createElementNS(SVG_NS, 'path');
+      mainBody.classList.add('arrow-line', 'snake-body');
+      mainBody.setAttribute('d', pathD);
+      mainBody.setAttribute('stroke', '#27ae60');
+      mainBody.setAttribute('stroke-width', '24');
+      mainBody.setAttribute('stroke-linecap', 'round');
+      mainBody.setAttribute('fill', 'none');
+      svg.appendChild(mainBody);
+
+      // Inner highlight (lighter)
+      const innerBody = document.createElementNS(SVG_NS, 'path');
+      innerBody.classList.add('arrow-line', 'snake-body');
+      innerBody.setAttribute('d', pathD);
+      innerBody.setAttribute('stroke', '#52d685');
+      innerBody.setAttribute('stroke-width', '10');
+      innerBody.setAttribute('stroke-linecap', 'round');
+      innerBody.setAttribute('fill', 'none');
+      innerBody.setAttribute('opacity', '0.7');
+      svg.appendChild(innerBody);
+
+      // Snake head at destination (cute round head)
+      const head = document.createElementNS(SVG_NS, 'circle');
+      head.classList.add('arrow-line', 'snake-head');
+      head.setAttribute('cx', to.x);
+      head.setAttribute('cy', to.y);
+      head.setAttribute('r', '28');
+      head.setAttribute('fill', 'url(#snakeHeadGrad)');
+      head.setAttribute('stroke', '#1e7d3f');
+      head.setAttribute('stroke-width', '3');
+      svg.appendChild(head);
+
+      // Tail at source (small green ball)
+      const tail = document.createElementNS(SVG_NS, 'circle');
+      tail.classList.add('arrow-line');
+      tail.setAttribute('cx', from.x);
+      tail.setAttribute('cy', from.y);
+      tail.setAttribute('r', '14');
+      tail.setAttribute('fill', '#1e7d3f');
+      svg.appendChild(tail);
+
+      // Eyes (white)
+      const eye1 = document.createElementNS(SVG_NS, 'circle');
+      eye1.classList.add('arrow-line');
+      eye1.setAttribute('cx', to.x - 9);
+      eye1.setAttribute('cy', to.y - 8);
+      eye1.setAttribute('r', '6');
+      eye1.setAttribute('fill', 'white');
+      svg.appendChild(eye1);
+
+      const eye2 = document.createElementNS(SVG_NS, 'circle');
+      eye2.classList.add('arrow-line');
+      eye2.setAttribute('cx', to.x + 9);
+      eye2.setAttribute('cy', to.y - 8);
+      eye2.setAttribute('r', '6');
+      eye2.setAttribute('fill', 'white');
+      svg.appendChild(eye2);
+
+      // Pupils (black)
+      const pup1 = document.createElementNS(SVG_NS, 'circle');
+      pup1.classList.add('arrow-line');
+      pup1.setAttribute('cx', to.x - 8);
+      pup1.setAttribute('cy', to.y - 7);
+      pup1.setAttribute('r', '3');
+      pup1.setAttribute('fill', '#000');
+      svg.appendChild(pup1);
+
+      const pup2 = document.createElementNS(SVG_NS, 'circle');
+      pup2.classList.add('arrow-line');
+      pup2.setAttribute('cx', to.x + 10);
+      pup2.setAttribute('cy', to.y - 7);
+      pup2.setAttribute('r', '3');
+      pup2.setAttribute('fill', '#000');
+      svg.appendChild(pup2);
+
+      // Forked tongue
+      const tongue = document.createElementNS(SVG_NS, 'path');
+      tongue.classList.add('arrow-line', 'snake-tongue');
+      tongue.setAttribute('d',
+        `M ${to.x} ${to.y + 12}
+         L ${to.x} ${to.y + 22}
+         M ${to.x} ${to.y + 22}
+         L ${to.x - 6} ${to.y + 28}
+         M ${to.x} ${to.y + 22}
+         L ${to.x + 6} ${to.y + 28}`);
+      tongue.setAttribute('stroke', '#ff4d8d');
+      tongue.setAttribute('stroke-width', '3');
+      tongue.setAttribute('stroke-linecap', 'round');
+      tongue.setAttribute('fill', 'none');
+      svg.appendChild(tongue);
+    }
+
+    // === Cute Pitfall Drawing ===
+    function drawCutePitfall(fromCell, toCell) {
+      const from = getCellCenter(fromCell);
+      const to = getCellCenter(toCell);
+      const svg = document.getElementById('arrowSvg');
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+
+      // Source hole - outer brown rim
+      const sourceRim = document.createElementNS(SVG_NS, 'ellipse');
+      sourceRim.classList.add('arrow-line', 'pit-hole-source');
+      sourceRim.setAttribute('cx', from.x);
+      sourceRim.setAttribute('cy', from.y);
+      sourceRim.setAttribute('rx', '45');
+      sourceRim.setAttribute('ry', '18');
+      sourceRim.setAttribute('fill', '#5d4037');
+      sourceRim.setAttribute('stroke', '#8b4513');
+      sourceRim.setAttribute('stroke-width', '3');
+      svg.appendChild(sourceRim);
+
+      // Source hole - dark interior
+      const sourceHole = document.createElementNS(SVG_NS, 'ellipse');
+      sourceHole.classList.add('arrow-line', 'pit-hole-source');
+      sourceHole.setAttribute('cx', from.x);
+      sourceHole.setAttribute('cy', from.y);
+      sourceHole.setAttribute('rx', '36');
+      sourceHole.setAttribute('ry', '13');
+      sourceHole.setAttribute('fill', 'url(#pitGrad)');
+      svg.appendChild(sourceHole);
+
+      // Inner darkness (deeper center)
+      const sourceDeep = document.createElementNS(SVG_NS, 'ellipse');
+      sourceDeep.classList.add('arrow-line');
+      sourceDeep.setAttribute('cx', from.x);
+      sourceDeep.setAttribute('cy', from.y);
+      sourceDeep.setAttribute('rx', '24');
+      sourceDeep.setAttribute('ry', '7');
+      sourceDeep.setAttribute('fill', '#000');
+      svg.appendChild(sourceDeep);
+
+      // Dashed red falling trajectory
+      const fallLine = document.createElementNS(SVG_NS, 'line');
+      fallLine.classList.add('arrow-line', 'fall-trajectory');
+      fallLine.setAttribute('x1', from.x);
+      fallLine.setAttribute('y1', from.y + 15);
+      fallLine.setAttribute('x2', to.x);
+      fallLine.setAttribute('y2', to.y - 15);
+      fallLine.setAttribute('stroke', '#e74c3c');
+      fallLine.setAttribute('stroke-width', '5');
+      fallLine.setAttribute('stroke-dasharray', '10,8');
+      fallLine.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(fallLine);
+
+      // Destination - "impact" hole (smaller, darker)
+      const destRim = document.createElementNS(SVG_NS, 'ellipse');
+      destRim.classList.add('arrow-line');
+      destRim.setAttribute('cx', to.x);
+      destRim.setAttribute('cy', to.y);
+      destRim.setAttribute('rx', '38');
+      destRim.setAttribute('ry', '14');
+      destRim.setAttribute('fill', '#5d4037');
+      destRim.setAttribute('stroke', '#8b4513');
+      destRim.setAttribute('stroke-width', '3');
+      svg.appendChild(destRim);
+
+      const destHole = document.createElementNS(SVG_NS, 'ellipse');
+      destHole.classList.add('arrow-line');
+      destHole.setAttribute('cx', to.x);
+      destHole.setAttribute('cy', to.y);
+      destHole.setAttribute('rx', '30');
+      destHole.setAttribute('ry', '10');
+      destHole.setAttribute('fill', 'url(#pitGrad)');
+      svg.appendChild(destHole);
     }
 
     function updateScores() {
@@ -652,7 +854,6 @@
       return currentPos;
     }
 
-    // === Trigger chain with conflict detection ===
     async function triggerChain(team, pieceIdx, landedCell) {
       const visitedCells = new Set([landedCell]);
       let currentCell = landedCell;
@@ -663,7 +864,6 @@
         chainCount++;
         let triggered = false;
 
-        // Treasure first
         if (isTreasureAt(currentCell)) {
           state.revealed.treasures.add(currentCell);
           state[`team${team}`].treasures++;
@@ -675,11 +875,9 @@
           updateScores();
         }
 
-        // CONFLICT CHECK: Does this cell have BOTH a snake head AND pitfall head?
         const snake = findSnakeFrom(currentCell);
         const pitfall = findPitfallFrom(currentCell);
         if (snake && pitfall) {
-          // Reveal both, then stop + skip turn
           state.revealed.snakes.add(currentCell);
           state.revealed.pitfalls.add(currentCell);
           const cell = cellElements[currentCell];
@@ -691,7 +889,6 @@
           return;
         }
 
-        // Snake only
         if (snake) {
           state.revealed.snakes.add(currentCell);
           const cell = cellElements[currentCell];
@@ -715,7 +912,6 @@
           continue;
         }
 
-        // Pitfall only
         if (pitfall) {
           state.revealed.pitfalls.add(currentCell);
           const cell = cellElements[currentCell];
