@@ -45,21 +45,55 @@
     }
     .panel h2 { text-align: center; margin: 0 0 8px; font-size: 0.95em; opacity: 0.9; }
 
+    /* === Team Name Inputs === */
+    #nameInputs { display: flex; gap: 6px; }
+    .name-input-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .name-label {
+      font-size: 0.8em;
+      font-weight: bold;
+      padding-left: 4px;
+    }
+    .name-label.team-a-label { color: #4a90e2; }
+    .name-label.team-b-label { color: #e74c3c; }
+    .name-input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.25);
+      color: white;
+      font-size: 1em;
+      font-weight: bold;
+      text-align: center;
+      outline: none;
+    }
+    .name-input.team-a-input { border-color: #4a90e2; }
+    .name-input.team-a-input:focus { box-shadow: 0 0 10px rgba(74,144,226,0.5); }
+    .name-input.team-b-input { border-color: #e74c3c; }
+    .name-input.team-b-input:focus { box-shadow: 0 0 10px rgba(231,76,60,0.5); }
+
     #teamSelector { display: flex; gap: 6px; margin-bottom: 10px; }
     .team-btn {
-      flex: 1; padding: 13px;
+      flex: 1; padding: 13px 8px;
       border: 2px solid;
       background: transparent;
       color: white; border-radius: 8px;
-      font-size: 1.05em; font-weight: bold;
+      font-size: 1em; font-weight: bold;
       cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .team-btn.team-a-btn { border-color: #4a90e2; }
     .team-btn.team-a-btn.active { background: #4a90e2; }
     .team-btn.team-b-btn { border-color: #e74c3c; }
     .team-btn.team-b-btn.active { background: #e74c3c; }
 
-    /* Tool colors - dynamic per team */
     #toolSelector { display: flex; gap: 6px; margin-bottom: 10px; }
     .tool-btn {
       flex: 1; padding: 11px 6px;
@@ -151,6 +185,9 @@
       padding: 10px;
       border-radius: 10px;
       margin-bottom: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     #turnDisplay.team-a { background: rgba(74, 144, 226, 0.3); border: 2px solid #4a90e2; }
     #turnDisplay.team-b { background: rgba(231, 76, 60, 0.3); border: 2px solid #e74c3c; }
@@ -251,11 +288,26 @@
   </div>
 
   <div id="setupPhase">
+    <!-- TEAM NAMES (NEW) -->
+    <div class="panel">
+      <h2>🏷️ Team Names</h2>
+      <div id="nameInputs">
+        <div class="name-input-wrap">
+          <div class="name-label team-a-label">🔵 Team A</div>
+          <input type="text" id="teamAInput" class="name-input team-a-input" maxlength="15" placeholder="Team A" value="Team A" oninput="onNameChange()">
+        </div>
+        <div class="name-input-wrap">
+          <div class="name-label team-b-label">🔴 Team B</div>
+          <input type="text" id="teamBInput" class="name-input team-b-input" maxlength="15" placeholder="Team B" value="Team B" oninput="onNameChange()">
+        </div>
+      </div>
+    </div>
+
     <div class="panel">
       <h2>Placing items for:</h2>
       <div id="teamSelector">
-        <button class="team-btn team-a-btn active" onclick="selectTeam('A')">🔵 Team A</button>
-        <button class="team-btn team-b-btn" onclick="selectTeam('B')">🔴 Team B</button>
+        <button class="team-btn team-a-btn active" id="teamABtn" onclick="selectTeam('A')">🔵 Team A</button>
+        <button class="team-btn team-b-btn" id="teamBBtn" onclick="selectTeam('B')">🔴 Team B</button>
       </div>
     </div>
 
@@ -341,12 +393,37 @@
       B: { snakes: [], pitfalls: [], treasures: [] }
     };
 
+    // Team names
+    const teamNames = { A: 'Team A', B: 'Team B' };
+
     const PIECE_NUMS = ['①', '②', '③', '④'];
     const teamPieces = { A: [1, 1, 1, 1], B: [1, 1, 1, 1] };
     let currentTurn = 'A';
     let selectedDice = null;
     let selectedPieceIdx = null;
     let gameLocked = false;
+
+    // === Team name management ===
+    function onNameChange() {
+      teamNames.A = document.getElementById('teamAInput').value.trim() || 'Team A';
+      teamNames.B = document.getElementById('teamBInput').value.trim() || 'Team B';
+      updateTeamSelectorLabels();
+      // Sync to display in real-time
+      if (conn && conn.open) {
+        conn.send({ type: 'updateNames', teamAName: teamNames.A, teamBName: teamNames.B });
+      }
+    }
+
+    function updateTeamSelectorLabels() {
+      document.getElementById('teamABtn').innerHTML = `🔵 ${escapeHTML(teamNames.A)}`;
+      document.getElementById('teamBBtn').innerHTML = `🔴 ${escapeHTML(teamNames.B)}`;
+    }
+
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
+    }
 
     function getCellCoords(cellNum) {
       const rowFromBottom = Math.floor((cellNum - 1) / 5);
@@ -421,7 +498,6 @@
     function getCellItemsHtml(cellNum) {
       const neutralized = hasNeutralized(cellNum);
       let html = '<div class="cell-items">';
-      // Color-coded item tags per team
       for (const team of ['A', 'B']) {
         const cls = team.toLowerCase();
         items[team].snakes.forEach(s => {
@@ -484,7 +560,7 @@
     function updateQuota() {
       const t = items[currentTeam];
       document.getElementById('quotaDisplay').innerHTML =
-        `Team ${currentTeam}: 🐍 ${t.snakes.length}/3 🕳️ ${t.pitfalls.length}/3 💎 ${t.treasures.length}/3`;
+        `${escapeHTML(teamNames[currentTeam])}: 🐍 ${t.snakes.length}/3 🕳️ ${t.pitfalls.length}/3 💎 ${t.treasures.length}/3`;
     }
 
     function updatePlacedList() {
@@ -494,7 +570,7 @@
         const colorClass = team === 'A' ? 'a-color' : 'b-color';
         const t = items[team];
         if (t.snakes.length || t.pitfalls.length || t.treasures.length) {
-          html += `<div><strong>${color} Team ${team}:</strong></div>`;
+          html += `<div><strong>${color} ${escapeHTML(teamNames[team])}:</strong></div>`;
           t.snakes.forEach(s => html += `<div class="${colorClass}">&nbsp;🐍 ${s.from}→${s.to}</div>`);
           t.pitfalls.forEach(p => html += `<div class="${colorClass}">&nbsp;🕳️ ${p.from}→${p.to}</div>`);
           if (t.treasures.length) html += `<div class="${colorClass}">&nbsp;💎 ${t.treasures.join(', ')}</div>`;
@@ -523,7 +599,7 @@
         const colorClass = team === 'A' ? 'a-color' : 'b-color';
         const t = items[team];
         if (t.snakes.length || t.pitfalls.length || t.treasures.length) {
-          html += `<div><strong>${color} Team ${team}:</strong></div>`;
+          html += `<div><strong>${color} ${escapeHTML(teamNames[team])}:</strong></div>`;
           t.snakes.forEach(s => html += `<div class="${colorClass}">&nbsp;🐍 ${s.from}→${s.to}</div>`);
           t.pitfalls.forEach(p => html += `<div class="${colorClass}">&nbsp;🕳️ ${p.from}→${p.to}</div>`);
           if (t.treasures.length) html += `<div class="${colorClass}">&nbsp;💎 ${t.treasures.join(', ')}</div>`;
@@ -542,13 +618,12 @@
       sourceCell = null; validTargets = [];
       document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('active'));
       document.querySelector(`.team-${team.toLowerCase()}-btn`).classList.add('active');
-      // Update tool button colors to match current team
       document.querySelectorAll('.tool-btn').forEach(b => {
         b.classList.remove('team-a', 'team-b');
         b.classList.add(`team-${team.toLowerCase()}`);
       });
       renderSetupBoard(); updateQuota();
-      showHint(`Placing for Team ${team}`);
+      showHint(`Placing for ${teamNames[team]}`);
     }
 
     function selectTool(tool) {
@@ -572,7 +647,7 @@
     }
 
     function clearTeam() {
-      if (!confirm(`Clear all items by Team ${currentTeam}?`)) return;
+      if (!confirm(`Clear all items by ${teamNames[currentTeam]}?`)) return;
       items[currentTeam] = { snakes: [], pitfalls: [], treasures: [] };
       sourceCell = null; validTargets = [];
       renderSetupBoard(); updateQuota(); updatePlacedList();
@@ -585,8 +660,7 @@
       selectedPieceIdx = null;
       selectedDice = null;
       gameLocked = false;
-      document.getElementById('turnDisplay').textContent = "🔵 Team A's Turn";
-      document.getElementById('turnDisplay').className = 'team-a';
+      updateTurnDisplay();
       updateGameStatusBanner();
       switchPhase('playing');
       updateCheatSheet();
@@ -594,7 +668,12 @@
       if (conn && conn.open) {
         conn.send({ type: 'reset' });
         setTimeout(() => {
-          conn.send({ type: 'startGame', items: items });
+          conn.send({
+            type: 'startGame',
+            items: items,
+            teamAName: teamNames.A,
+            teamBName: teamNames.B
+          });
         }, 100);
       }
     }
@@ -617,10 +696,10 @@
     function updateTurnDisplay() {
       const turnEl = document.getElementById('turnDisplay');
       if (currentTurn === 'A') {
-        turnEl.textContent = "🔵 Team A's Turn";
+        turnEl.innerHTML = `🔵 ${escapeHTML(teamNames.A)}'s Turn`;
         turnEl.className = 'team-a';
       } else {
-        turnEl.textContent = "🔴 Team B's Turn";
+        turnEl.innerHTML = `🔴 ${escapeHTML(teamNames.B)}'s Turn`;
         turnEl.className = 'team-b';
       }
     }
@@ -747,6 +826,8 @@
         statusEl.textContent = '🟢 Connected';
         statusEl.className = 'connected';
         conn.send({ type: 'setupMode' });
+        // Send initial names
+        conn.send({ type: 'updateNames', teamAName: teamNames.A, teamBName: teamNames.B });
       });
       conn.on('close', () => {
         statusEl.textContent = '⚠️ Disconnected — refresh';
@@ -759,6 +840,7 @@
       statusEl.className = 'error';
     });
 
+    updateTeamSelectorLabels();
     renderSetupBoard();
     updateQuota();
     updatePlacedList();
