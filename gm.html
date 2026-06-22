@@ -59,6 +59,7 @@
     .team-btn.team-b-btn { border-color: #e74c3c; }
     .team-btn.team-b-btn.active { background: #e74c3c; }
 
+    /* Tool colors - dynamic per team */
     #toolSelector { display: flex; gap: 6px; margin-bottom: 10px; }
     .tool-btn {
       flex: 1; padding: 11px 6px;
@@ -68,12 +69,15 @@
       font-size: 0.9em; font-weight: bold;
       cursor: pointer;
     }
-    .tool-btn.snake { background: #27ae60; }
-    .tool-btn.snake.active { border-color: white; box-shadow: 0 0 10px rgba(39, 174, 96, 0.8); }
-    .tool-btn.pitfall { background: #c0392b; }
-    .tool-btn.pitfall.active { border-color: white; box-shadow: 0 0 10px rgba(192, 57, 43, 0.8); }
-    .tool-btn.treasure { background: #d4af37; color: #1a1f3a; }
-    .tool-btn.treasure.active { border-color: white; box-shadow: 0 0 10px rgba(212, 175, 55, 0.8); }
+    .tool-btn.snake.team-a { background: #27ae60; }
+    .tool-btn.snake.team-b { background: #9b59b6; }
+    .tool-btn.snake.active { border-color: white; box-shadow: 0 0 10px rgba(255,255,255,0.6); }
+    .tool-btn.pitfall.team-a { background: #c0392b; }
+    .tool-btn.pitfall.team-b { background: #e67e22; }
+    .tool-btn.pitfall.active { border-color: white; box-shadow: 0 0 10px rgba(255,255,255,0.6); }
+    .tool-btn.treasure.team-a { background: #d4af37; color: #1a1f3a; }
+    .tool-btn.treasure.team-b { background: #1abc9c; }
+    .tool-btn.treasure.active { border-color: white; box-shadow: 0 0 10px rgba(255,255,255,0.6); }
 
     #quotaDisplay {
       text-align: center;
@@ -115,13 +119,19 @@
     .cell-num { opacity: 0.6; font-size: 0.85em; }
     .cell-items { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; justify-content: center; }
     .item-tag { font-size: 1em; }
+    .item-tag.snake-a { color: #52d685; }
+    .item-tag.snake-b { color: #d2a8e8; }
+    .item-tag.pit-a { color: #f08080; }
+    .item-tag.pit-b { color: #f5b078; }
+    .item-tag.treasure-a { color: #ffd700; }
+    .item-tag.treasure-b { color: #76eee0; }
     .item-tag.neutralized { color: #c39bd3; }
 
     #placedList {
       font-size: 0.85em; padding: 8px;
       background: rgba(0,0,0,0.2);
       border-radius: 6px;
-      max-height: 110px;
+      max-height: 140px;
       overflow-y: auto;
       margin-bottom: 8px;
     }
@@ -131,6 +141,8 @@
       font-size: 0.92em;
       margin-top: 4px;
     }
+    .a-color { color: #52d685; }
+    .b-color { color: #d2a8e8; }
 
     #turnDisplay {
       text-align: center;
@@ -224,7 +236,7 @@
       padding: 8px;
       background: rgba(0,0,0,0.3);
       border-radius: 6px;
-      max-height: 180px;
+      max-height: 200px;
       overflow-y: auto;
     }
   </style>
@@ -248,11 +260,11 @@
     </div>
 
     <div class="panel">
-      <h2>🧰 Tool:</h2>
+      <h2>🧰 Tool (colors match team):</h2>
       <div id="toolSelector">
-        <button class="tool-btn snake active" id="toolSnake" onclick="selectTool('snake')">🐍 Snake<br>(up)</button>
-        <button class="tool-btn pitfall" id="toolPitfall" onclick="selectTool('pitfall')">🕳️ Pitfall<br>(down)</button>
-        <button class="tool-btn treasure" id="toolTreasure" onclick="selectTool('treasure')">💎 Treasure</button>
+        <button class="tool-btn snake team-a active" id="toolSnake" onclick="selectTool('snake')">🐍 Snake<br>(up)</button>
+        <button class="tool-btn pitfall team-a" id="toolPitfall" onclick="selectTool('pitfall')">🕳️ Pitfall<br>(down)</button>
+        <button class="tool-btn treasure team-a" id="toolTreasure" onclick="selectTool('treasure')">💎 Treasure</button>
       </div>
       <div id="quotaDisplay">🐍 0/3 🕳️ 0/3 💎 0/3</div>
     </div>
@@ -264,7 +276,7 @@
         Tap any cell to begin
       </div>
       <div style="font-size:0.75em; opacity:0.65; margin-top:4px; text-align:center;">
-        Note: cells 1 & 25 can be <strong>targets</strong> but not sources
+        Cells 1 & 25 can be <strong>targets</strong> but not sources
       </div>
     </div>
 
@@ -349,8 +361,6 @@
       const rowStart = rowFromBottom * 5 + 1;
       return (rowFromBottom % 2 === 0) ? rowStart + visualCol : rowStart + (4 - visualCol);
     }
-
-    // Snake: diagonal up; targets CAN include 1 or 25 now
     function getSnakeTargets(fromCell) {
       const { visualRow, visualCol } = getCellCoords(fromCell);
       const targets = [];
@@ -360,17 +370,14 @@
       if (upRight) targets.push(upRight);
       return targets;
     }
-    // Pitfall: vertical down; targets CAN include 1 or 25 now
     function getPitfallTarget(fromCell) {
       const { visualRow, visualCol } = getCellCoords(fromCell);
       const target = getCellAtCoords(visualRow + 1, visualCol);
       return target;
     }
     function getTotalCount(team, type) { return items[team][type].length; }
-    // SOURCE cells 1 and 25 are still blocked
     function isSourceBlocked(cellNum) { return cellNum === 1 || cellNum === 25; }
 
-    // Check if cell has both a snake head AND pitfall head (will neutralize, no penalty)
     function hasNeutralized(cellNum) {
       let hasSnake = false, hasPitfall = false;
       for (const team of ['A', 'B']) {
@@ -379,8 +386,6 @@
       }
       return hasSnake && hasPitfall;
     }
-
-    // Check multiple snakes at same source cell
     function getSnakesAt(cellNum) {
       const snakes = [];
       for (const team of ['A', 'B']) {
@@ -401,7 +406,6 @@
           div.className = 'setup-cell';
           if (cellNum === 1) div.classList.add('start');
           if (cellNum === 25) div.classList.add('goal');
-          // Block sources only when placing snake/pitfall, not treasure
           const isPlacingSource = (currentTool === 'snake' || currentTool === 'pitfall') && sourceCell === null;
           if (isPlacingSource && isSourceBlocked(cellNum)) div.classList.add('source-blocked');
           if (currentTool === 'treasure' && isSourceBlocked(cellNum)) div.classList.add('source-blocked');
@@ -417,28 +421,20 @@
     function getCellItemsHtml(cellNum) {
       const neutralized = hasNeutralized(cellNum);
       let html = '<div class="cell-items">';
-      let snakeHead = false, pitfallHead = false;
-      let snakeCount = 0;
+      // Color-coded item tags per team
       for (const team of ['A', 'B']) {
+        const cls = team.toLowerCase();
         items[team].snakes.forEach(s => {
-          if (s.from === cellNum) { snakeHead = true; snakeCount++; }
-          if (s.to === cellNum) html += `<span class="item-tag" style="opacity:0.4;">🐍•</span>`;
+          if (s.from === cellNum) html += `<span class="item-tag snake-${cls} ${neutralized ? 'neutralized' : ''}">🐍</span>`;
+          if (s.to === cellNum) html += `<span class="item-tag snake-${cls}" style="opacity:0.4;">🐍•</span>`;
         });
         items[team].pitfalls.forEach(p => {
-          if (p.from === cellNum) pitfallHead = true;
-          if (p.to === cellNum) html += `<span class="item-tag" style="opacity:0.4;">🕳️•</span>`;
+          if (p.from === cellNum) html += `<span class="item-tag pit-${cls} ${neutralized ? 'neutralized' : ''}">🕳️</span>`;
+          if (p.to === cellNum) html += `<span class="item-tag pit-${cls}" style="opacity:0.4;">🕳️•</span>`;
         });
         items[team].treasures.forEach(t => {
-          if (t === cellNum) html += `<span class="item-tag">💎</span>`;
+          if (t === cellNum) html += `<span class="item-tag treasure-${cls}">💎</span>`;
         });
-      }
-      if (snakeHead) {
-        const cls = neutralized ? 'neutralized' : '';
-        html += `<span class="item-tag ${cls}">🐍${snakeCount > 1 ? '×' + snakeCount : ''}</span>`;
-      }
-      if (pitfallHead) {
-        const cls = neutralized ? 'neutralized' : '';
-        html += `<span class="item-tag ${cls}">🕳️</span>`;
       }
       if (neutralized) html += `<span class="item-tag neutralized">⚖️</span>`;
       html += '</div>';
@@ -446,8 +442,6 @@
     }
 
     function onCellTap(cellNum) {
-      // For snake/pitfall: source cells 1, 25 are blocked (but targets allowed)
-      // For treasure: cells 1, 25 are blocked completely
       if (currentTool === 'treasure') {
         if (isSourceBlocked(cellNum)) { showHint('❌ Cell 1 and 25 cannot hold treasure'); return; }
         if (getTotalCount(currentTeam, 'treasures') >= 3) { showHint('❌ Max 3 treasures'); return; }
@@ -497,15 +491,15 @@
       let html = '';
       for (const team of ['A', 'B']) {
         const color = team === 'A' ? '🔵' : '🔴';
+        const colorClass = team === 'A' ? 'a-color' : 'b-color';
         const t = items[team];
         if (t.snakes.length || t.pitfalls.length || t.treasures.length) {
           html += `<div><strong>${color} Team ${team}:</strong></div>`;
-          t.snakes.forEach(s => html += `<div>&nbsp;🐍 ${s.from}→${s.to}</div>`);
-          t.pitfalls.forEach(p => html += `<div>&nbsp;🕳️ ${p.from}→${p.to}</div>`);
-          if (t.treasures.length) html += `<div>&nbsp;💎 ${t.treasures.join(', ')}</div>`;
+          t.snakes.forEach(s => html += `<div class="${colorClass}">&nbsp;🐍 ${s.from}→${s.to}</div>`);
+          t.pitfalls.forEach(p => html += `<div class="${colorClass}">&nbsp;🕳️ ${p.from}→${p.to}</div>`);
+          if (t.treasures.length) html += `<div class="${colorClass}">&nbsp;💎 ${t.treasures.join(', ')}</div>`;
         }
       }
-      // Info notes for special situations
       const neutralCells = [];
       for (let c = 1; c <= 25; c++) if (hasNeutralized(c)) neutralCells.push(c);
       if (neutralCells.length) {
@@ -514,10 +508,10 @@
       const multiSnakeCells = [];
       for (let c = 1; c <= 25; c++) {
         const snakes = getSnakesAt(c);
-        if (snakes.length > 1) multiSnakeCells.push(`${c} (×${snakes.length}, picks biggest target)`);
+        if (snakes.length > 1) multiSnakeCells.push(`${c} (×${snakes.length}, picks biggest)`);
       }
       if (multiSnakeCells.length) {
-        html += `<div class="info-note">🐍 Multi-snake cells: ${multiSnakeCells.join(', ')}</div>`;
+        html += `<div class="info-note">🐍 Multi-snake: ${multiSnakeCells.join(', ')}</div>`;
       }
       document.getElementById('placedList').innerHTML = html || 'No items placed yet';
     }
@@ -526,12 +520,13 @@
       let html = '';
       for (const team of ['A', 'B']) {
         const color = team === 'A' ? '🔵' : '🔴';
+        const colorClass = team === 'A' ? 'a-color' : 'b-color';
         const t = items[team];
         if (t.snakes.length || t.pitfalls.length || t.treasures.length) {
           html += `<div><strong>${color} Team ${team}:</strong></div>`;
-          t.snakes.forEach(s => html += `<div>&nbsp;🐍 ${s.from}→${s.to}</div>`);
-          t.pitfalls.forEach(p => html += `<div>&nbsp;🕳️ ${p.from}→${p.to}</div>`);
-          if (t.treasures.length) html += `<div>&nbsp;💎 ${t.treasures.join(', ')}</div>`;
+          t.snakes.forEach(s => html += `<div class="${colorClass}">&nbsp;🐍 ${s.from}→${s.to}</div>`);
+          t.pitfalls.forEach(p => html += `<div class="${colorClass}">&nbsp;🕳️ ${p.from}→${p.to}</div>`);
+          if (t.treasures.length) html += `<div class="${colorClass}">&nbsp;💎 ${t.treasures.join(', ')}</div>`;
         }
       }
       const neutralCells = [];
@@ -547,6 +542,11 @@
       sourceCell = null; validTargets = [];
       document.querySelectorAll('.team-btn').forEach(b => b.classList.remove('active'));
       document.querySelector(`.team-${team.toLowerCase()}-btn`).classList.add('active');
+      // Update tool button colors to match current team
+      document.querySelectorAll('.tool-btn').forEach(b => {
+        b.classList.remove('team-a', 'team-b');
+        b.classList.add(`team-${team.toLowerCase()}`);
+      });
       renderSetupBoard(); updateQuota();
       showHint(`Placing for Team ${team}`);
     }
@@ -697,7 +697,6 @@
     function sendMove() {
       if (gameLocked) return;
       if (selectedPieceIdx === null || !selectedDice || !conn || !conn.open) return;
-      // Local position mirror (note: display does the real trigger logic)
       teamPieces[currentTurn][selectedPieceIdx] = Math.min(
         teamPieces[currentTurn][selectedPieceIdx] + selectedDice, 25
       );
@@ -767,4 +766,3 @@
   </script>
 </body>
 </html>
-``
