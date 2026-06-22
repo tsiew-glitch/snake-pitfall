@@ -36,10 +36,8 @@
     .connected { background: #4caf50; }
 
     #gameStatusBadge {
-      font-size: 1.3em;
-      font-weight: bold;
-      padding: 8px 18px;
-      border-radius: 10px;
+      font-size: 1.3em; font-weight: bold;
+      padding: 8px 18px; border-radius: 10px;
     }
     #gameStatusBadge.hidden { display: none; }
     #gameStatusBadge.game-over { background: rgba(212, 175, 55, 0.5); border: 2px solid #d4af37; }
@@ -79,8 +77,7 @@
     #arrowSvg {
       position: absolute;
       top: 0; left: 0;
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       pointer-events: none;
       z-index: 5;
     }
@@ -111,9 +108,10 @@
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 2px;
-      font-size: 1.1em;
-      z-index: 6;
+      font-size: 1.2em;
+      z-index: 10;
       max-width: 100%;
+      position: relative;
     }
     .piece {
       display: inline-flex;
@@ -121,46 +119,18 @@
       justify-content: center;
       min-width: 1.6em;
       line-height: 1;
-    }
-    .item-icons {
-      position: absolute;
-      top: 2px;
-      right: 4px;
-      display: flex;
-      gap: 3px;
-      font-size: 0.9em;
-      z-index: 4;
-      line-height: 1;
-    }
-    .item-icon.treasure {
-      font-size: 1.5em;
-      animation: treasureGlow 1.5s infinite ease-in-out;
-    }
-    @keyframes treasureGlow {
-      0%, 100% { filter: drop-shadow(0 0 4px rgba(255,215,0,0.6)); transform: scale(1); }
-      50% { filter: drop-shadow(0 0 14px rgba(255,215,0,1)); transform: scale(1.15); }
+      filter: drop-shadow(0 0 3px rgba(0,0,0,0.9));
     }
 
     .cell.highlight {
       background: linear-gradient(145deg, #f39c12, #d68910) !important;
       animation: flash 0.4s ease;
     }
-    .cell.snake-reveal {
-      background: linear-gradient(145deg, #27ae60, #229954) !important;
-      animation: revealFlash 0.6s ease;
-    }
-    .cell.pitfall-reveal {
-      background: linear-gradient(145deg, #c0392b, #a93226) !important;
-      animation: revealFlash 0.6s ease;
-    }
-    .cell.treasure-reveal {
-      background: linear-gradient(145deg, #d4af37, #f1c40f) !important;
-      animation: revealFlash 0.6s ease;
-    }
-    .cell.conflict-reveal {
-      background: linear-gradient(145deg, #8e44ad, #6c3483) !important;
-      animation: revealFlash 0.6s ease;
-    }
+    .cell.snake-reveal { animation: revealFlash 0.6s ease; }
+    .cell.pitfall-reveal { animation: revealFlash 0.6s ease; }
+    .cell.treasure-reveal-a { background: linear-gradient(145deg, #d4af37, #f1c40f) !important; animation: revealFlash 0.6s ease; }
+    .cell.treasure-reveal-b { background: linear-gradient(145deg, #1abc9c, #16a085) !important; animation: revealFlash 0.6s ease; }
+    .cell.conflict-reveal { background: linear-gradient(145deg, #8e44ad, #6c3483) !important; animation: revealFlash 0.6s ease; }
     @keyframes flash {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.05); }
@@ -171,12 +141,12 @@
       100% { transform: scale(1); }
     }
 
-    .snake-body { animation: snakeWiggle 2s infinite ease-in-out; transform-origin: center; }
+    .snake-body { animation: snakeWiggle 2s infinite ease-in-out; }
     @keyframes snakeWiggle {
       0%, 100% { opacity: 0.85; }
       50% { opacity: 1; }
     }
-    .snake-head { animation: headBob 1.5s infinite ease-in-out; }
+    .snake-head { animation: headBob 1.5s infinite ease-in-out; transform-origin: center; transform-box: fill-box; }
     @keyframes headBob {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.08); }
@@ -186,7 +156,7 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.3; }
     }
-    .pit-hole-source { animation: pitPulse 2s infinite ease-in-out; transform-origin: center; }
+    .pit-hole { animation: pitPulse 2s infinite ease-in-out; }
     @keyframes pitPulse {
       0%, 100% { opacity: 0.95; }
       50% { opacity: 0.7; }
@@ -230,6 +200,45 @@
     .breakdown { font-size: 0.8em; opacity: 0.85; margin: 4px 0; }
     .piece-positions { font-size: 0.85em; }
 
+    /* === Legend === */
+    #legend {
+      margin-top: 15px;
+      padding: 12px 24px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 12px;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.95em;
+    }
+    #legend.hidden { display: none; }
+    .legend-team {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.25);
+    }
+    .legend-team.team-a-border { border: 2px solid #4a90e2; }
+    .legend-team.team-b-border { border: 2px solid #e74c3c; }
+    .legend-team-title { font-weight: bold; font-size: 1.05em; text-align: center; }
+    .legend-row { display: flex; gap: 12px; }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.95em;
+    }
+    .legend-swatch {
+      width: 16px; height: 16px;
+      border-radius: 4px;
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
     #bigBanner {
       position: fixed;
       top: 50%; left: 50%;
@@ -246,9 +255,12 @@
       text-align: center;
     }
     #bigBanner.show { transform: translate(-50%, -50%) scale(1); }
-    #bigBanner.snake { background: #27ae60; color: white; }
-    #bigBanner.pitfall { background: #c0392b; color: white; }
-    #bigBanner.treasure { background: #d4af37; color: #1a1f3a; }
+    #bigBanner.snake-a { background: #27ae60; color: white; }
+    #bigBanner.snake-b { background: #9b59b6; color: white; }
+    #bigBanner.pitfall-a { background: #c0392b; color: white; }
+    #bigBanner.pitfall-b { background: #e67e22; color: white; }
+    #bigBanner.treasure-a { background: #d4af37; color: #1a1f3a; }
+    #bigBanner.treasure-b { background: #1abc9c; color: white; }
     #bigBanner.loop { background: #9b59b6; color: white; }
     #bigBanner.conflict { background: #8e44ad; color: white; }
     #bigBanner.goal { background: #f39c12; color: white; }
@@ -262,8 +274,7 @@
       font-size: 7em;
       background: white;
       color: #0a0e27;
-      width: 180px;
-      height: 180px;
+      width: 180px; height: 180px;
       border-radius: 30px;
       display: flex;
       align-items: center;
@@ -289,10 +300,17 @@
     <div id="board"></div>
     <svg id="arrowSvg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
       <defs>
-        <radialGradient id="snakeHeadGrad" cx="40%" cy="40%" r="60%">
+        <!-- Team A snake (green) -->
+        <radialGradient id="snakeHeadGradA" cx="40%" cy="40%" r="60%">
           <stop offset="0%" stop-color="#7be899" />
           <stop offset="100%" stop-color="#1e7d3f" />
         </radialGradient>
+        <!-- Team B snake (purple) -->
+        <radialGradient id="snakeHeadGradB" cx="40%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#d2a8e8" />
+          <stop offset="100%" stop-color="#6c3483" />
+        </radialGradient>
+        <!-- Pit gradient (shared, just different rim colors) -->
         <radialGradient id="pitGrad" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stop-color="#000" />
           <stop offset="70%" stop-color="#1a1a1a" />
@@ -317,11 +335,48 @@
     </div>
   </div>
 
+  <div id="legend" class="hidden">
+    <div class="legend-team team-a-border">
+      <div class="legend-team-title team-a-color">🔵 Team A</div>
+      <div class="legend-row">
+        <span class="legend-item"><span class="legend-swatch" style="background:#27ae60;"></span>🐍</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#c0392b;"></span>🕳️</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#d4af37;"></span>💎</span>
+      </div>
+    </div>
+    <div class="legend-team team-b-border">
+      <div class="legend-team-title team-b-color">🔴 Team B</div>
+      <div class="legend-row">
+        <span class="legend-item"><span class="legend-swatch" style="background:#9b59b6;"></span>🐍</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#e67e22;"></span>🕳️</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#1abc9c;"></span>💎</span>
+      </div>
+    </div>
+  </div>
+
   <div id="diceDisplay">🎲</div>
   <div id="bigBanner"></div>
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
+    // === Team color palette ===
+    const TEAM_COLORS = {
+      A: {
+        snakeOuter: '#1e7d3f', snakeMain: '#27ae60', snakeInner: '#52d685',
+        snakeHeadGrad: 'snakeHeadGradA',
+        pitRim: '#8b4513', pitRimDark: '#5d4037',
+        fallLine: '#c0392b',
+        treasureBg: 'treasure-a'
+      },
+      B: {
+        snakeOuter: '#6c3483', snakeMain: '#9b59b6', snakeInner: '#d2a8e8',
+        snakeHeadGrad: 'snakeHeadGradB',
+        pitRim: '#a0522d', pitRimDark: '#6b3e1a',
+        fallLine: '#e67e22',
+        treasureBg: 'treasure-b'
+      }
+    };
+
     const state = {
       phase: 'setup',
       teamA: { pieces: [1, 1, 1, 1], treasures: 0 },
@@ -375,7 +430,6 @@
       if (rowFromBottom % 2 === 0) return rowStart + visualCol;
       return rowStart + (4 - visualCol);
     }
-
     function getCellCoords(cellNum) {
       const rowFromBottom = Math.floor((cellNum - 1) / 5);
       const visualRow = 4 - rowFromBottom;
@@ -383,13 +437,21 @@
       const visualCol = (rowFromBottom % 2 === 0) ? posInRow : 4 - posInRow;
       return { visualRow, visualCol };
     }
-
     function getCellCenter(cellNum) {
       const { visualRow, visualCol } = getCellCoords(cellNum);
       const cellSize = 1000 / 5;
       return {
         x: visualCol * cellSize + cellSize / 2,
         y: visualRow * cellSize + cellSize / 2
+      };
+    }
+    // Get a point near the EDGE of cell toward the destination — keeps center clear for pieces
+    function getEdgePoint(fromCell, toCell, edgeBias = 0.35) {
+      const from = getCellCenter(fromCell);
+      const to = getCellCenter(toCell);
+      return {
+        x: from.x + (to.x - from.x) * edgeBias,
+        y: from.y + (to.y - from.y) * edgeBias
       };
     }
 
@@ -405,7 +467,6 @@
         cell.innerHTML = `
           <div class="cell-number">${cellNum}</div>
           <div class="pieces" id="pieces-${cellNum}"></div>
-          <div class="item-icons" id="items-${cellNum}"></div>
         `;
         board.appendChild(cell);
         cellElements[cellNum] = cell;
@@ -423,17 +484,16 @@
       updateScores();
     }
 
-    // Returns ALL snakes from a cell (across both teams)
+    // Find all snakes from cell (with team info)
     function getAllSnakesFrom(cellNum) {
       const snakes = [];
       for (const team of ['A', 'B']) {
         state.items[team].snakes.forEach(s => {
-          if (s.from === cellNum) snakes.push(s);
+          if (s.from === cellNum) snakes.push({ team, ...s });
         });
       }
       return snakes;
     }
-    // Returns the snake with the BIGGEST target (for triggering)
     function findBestSnakeFrom(cellNum) {
       const all = getAllSnakesFrom(cellNum);
       if (all.length === 0) return null;
@@ -442,54 +502,62 @@
     function findPitfallFrom(cellNum) {
       for (const team of ['A', 'B']) {
         const f = state.items[team].pitfalls.find(p => p.from === cellNum);
-        if (f) return f;
+        if (f) return { team, ...f };
+      }
+      return null;
+    }
+    function getTreasureTeamAt(cellNum) {
+      if (state.revealed.treasures.has(cellNum)) return null;
+      for (const team of ['A', 'B']) {
+        if (state.items[team].treasures.includes(cellNum)) return team;
       }
       return null;
     }
     function isTreasureAt(cellNum) {
-      if (state.revealed.treasures.has(cellNum)) return false;
-      for (const team of ['A', 'B']) if (state.items[team].treasures.includes(cellNum)) return true;
-      return false;
+      return getTreasureTeamAt(cellNum) !== null;
     }
 
     function renderRevealedItems() {
-      for (let i = 1; i <= 25; i++) document.getElementById(`items-${i}`).innerHTML = '';
       const svg = document.getElementById('arrowSvg');
       const oldDrawings = svg.querySelectorAll('.arrow-line');
       oldDrawings.forEach(a => a.remove());
 
-      // Draw ALL snakes at revealed cells
       state.revealed.snakes.forEach(fromCell => {
         const snakes = getAllSnakesFrom(fromCell);
-        snakes.forEach(s => drawCuteSnake(fromCell, s.to));
+        snakes.forEach(s => drawCuteSnake(fromCell, s.to, s.team));
       });
       state.revealed.pitfalls.forEach(fromCell => {
         const item = findPitfallFrom(fromCell);
-        if (item) drawCutePitfall(fromCell, item.to);
+        if (item) drawCutePitfall(fromCell, item.to, item.team);
       });
     }
 
-    function drawCuteSnake(fromCell, toCell) {
-      const from = getCellCenter(fromCell);
-      const to = getCellCenter(toCell);
+    // === Snake drawing with team color and edge offset ===
+    function drawCuteSnake(fromCell, toCell, team) {
+      const colors = TEAM_COLORS[team];
+      // Offset endpoints toward edge (keep center clear for pieces)
+      const fromEdge = getEdgePoint(fromCell, toCell, 0.32);
+      const toEdge = getEdgePoint(toCell, fromCell, 0.32);
       const svg = document.getElementById('arrowSvg');
       const SVG_NS = 'http://www.w3.org/2000/svg';
-      const dx = to.x - from.x;
-      const dy = to.y - from.y;
+
+      const dx = toEdge.x - fromEdge.x;
+      const dy = toEdge.y - fromEdge.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
       const perpX = -dy / dist;
       const perpY = dx / dist;
-      const wave = Math.min(dist * 0.35, 60);
-      const ctrl1X = from.x + dx * 0.3 + perpX * wave;
-      const ctrl1Y = from.y + dy * 0.3 + perpY * wave;
-      const ctrl2X = from.x + dx * 0.7 - perpX * wave;
-      const ctrl2Y = from.y + dy * 0.7 - perpY * wave;
-      const pathD = `M ${from.x} ${from.y} C ${ctrl1X} ${ctrl1Y}, ${ctrl2X} ${ctrl2Y}, ${to.x} ${to.y}`;
+      const wave = Math.min(dist * 0.35, 50);
+      const ctrl1X = fromEdge.x + dx * 0.3 + perpX * wave;
+      const ctrl1Y = fromEdge.y + dy * 0.3 + perpY * wave;
+      const ctrl2X = fromEdge.x + dx * 0.7 - perpX * wave;
+      const ctrl2Y = fromEdge.y + dy * 0.7 - perpY * wave;
+      const pathD = `M ${fromEdge.x} ${fromEdge.y} C ${ctrl1X} ${ctrl1Y}, ${ctrl2X} ${ctrl2Y}, ${toEdge.x} ${toEdge.y}`;
 
+      // Layered body
       [
-        { color: '#1e7d3f', width: 32 },
-        { color: '#27ae60', width: 24 },
-        { color: '#52d685', width: 10, opacity: 0.7 }
+        { color: colors.snakeOuter, width: 22 },
+        { color: colors.snakeMain, width: 16 },
+        { color: colors.snakeInner, width: 7, opacity: 0.7 }
       ].forEach(({ color, width, opacity }) => {
         const p = document.createElementNS(SVG_NS, 'path');
         p.classList.add('arrow-line', 'snake-body');
@@ -502,83 +570,91 @@
         svg.appendChild(p);
       });
 
+      // Smaller head
       const head = document.createElementNS(SVG_NS, 'circle');
       head.classList.add('arrow-line', 'snake-head');
-      head.setAttribute('cx', to.x); head.setAttribute('cy', to.y);
-      head.setAttribute('r', '28'); head.setAttribute('fill', 'url(#snakeHeadGrad)');
-      head.setAttribute('stroke', '#1e7d3f'); head.setAttribute('stroke-width', '3');
+      head.setAttribute('cx', toEdge.x); head.setAttribute('cy', toEdge.y);
+      head.setAttribute('r', '20');
+      head.setAttribute('fill', `url(#${colors.snakeHeadGrad})`);
+      head.setAttribute('stroke', colors.snakeOuter); head.setAttribute('stroke-width', '2');
       svg.appendChild(head);
 
+      // Smaller tail
       const tail = document.createElementNS(SVG_NS, 'circle');
       tail.classList.add('arrow-line');
-      tail.setAttribute('cx', from.x); tail.setAttribute('cy', from.y);
-      tail.setAttribute('r', '14'); tail.setAttribute('fill', '#1e7d3f');
+      tail.setAttribute('cx', fromEdge.x); tail.setAttribute('cy', fromEdge.y);
+      tail.setAttribute('r', '10'); tail.setAttribute('fill', colors.snakeOuter);
       svg.appendChild(tail);
 
-      [[-9, -8], [9, -8]].forEach(([ox, oy]) => {
+      // Smaller eyes
+      [[-7, -6], [7, -6]].forEach(([ox, oy]) => {
         const eye = document.createElementNS(SVG_NS, 'circle');
         eye.classList.add('arrow-line');
-        eye.setAttribute('cx', to.x + ox); eye.setAttribute('cy', to.y + oy);
-        eye.setAttribute('r', '6'); eye.setAttribute('fill', 'white');
+        eye.setAttribute('cx', toEdge.x + ox); eye.setAttribute('cy', toEdge.y + oy);
+        eye.setAttribute('r', '4'); eye.setAttribute('fill', 'white');
         svg.appendChild(eye);
         const pup = document.createElementNS(SVG_NS, 'circle');
         pup.classList.add('arrow-line');
-        pup.setAttribute('cx', to.x + ox + 1); pup.setAttribute('cy', to.y + oy + 1);
-        pup.setAttribute('r', '3'); pup.setAttribute('fill', '#000');
+        pup.setAttribute('cx', toEdge.x + ox + 1); pup.setAttribute('cy', toEdge.y + oy + 1);
+        pup.setAttribute('r', '2'); pup.setAttribute('fill', '#000');
         svg.appendChild(pup);
       });
 
+      // Smaller tongue
       const tongue = document.createElementNS(SVG_NS, 'path');
       tongue.classList.add('arrow-line', 'snake-tongue');
       tongue.setAttribute('d',
-        `M ${to.x} ${to.y + 12} L ${to.x} ${to.y + 22}
-         M ${to.x} ${to.y + 22} L ${to.x - 6} ${to.y + 28}
-         M ${to.x} ${to.y + 22} L ${to.x + 6} ${to.y + 28}`);
+        `M ${toEdge.x} ${toEdge.y + 8} L ${toEdge.x} ${toEdge.y + 16}
+         M ${toEdge.x} ${toEdge.y + 16} L ${toEdge.x - 4} ${toEdge.y + 20}
+         M ${toEdge.x} ${toEdge.y + 16} L ${toEdge.x + 4} ${toEdge.y + 20}`);
       tongue.setAttribute('stroke', '#ff4d8d');
-      tongue.setAttribute('stroke-width', '3');
+      tongue.setAttribute('stroke-width', '2');
       tongue.setAttribute('stroke-linecap', 'round');
       tongue.setAttribute('fill', 'none');
       svg.appendChild(tongue);
     }
 
-    function drawCutePitfall(fromCell, toCell) {
-      const from = getCellCenter(fromCell);
-      const to = getCellCenter(toCell);
+    // === Pitfall drawing with team color and edge offset ===
+    function drawCutePitfall(fromCell, toCell, team) {
+      const colors = TEAM_COLORS[team];
+      const fromEdge = getEdgePoint(fromCell, toCell, 0.30);
+      const toEdge = getEdgePoint(toCell, fromCell, 0.30);
       const svg = document.getElementById('arrowSvg');
       const SVG_NS = 'http://www.w3.org/2000/svg';
 
-      [from, to].forEach(p => {
+      [fromEdge, toEdge].forEach(p => {
+        // Smaller pit
         const rim = document.createElementNS(SVG_NS, 'ellipse');
-        rim.classList.add('arrow-line', 'pit-hole-source');
+        rim.classList.add('arrow-line', 'pit-hole');
         rim.setAttribute('cx', p.x); rim.setAttribute('cy', p.y);
-        rim.setAttribute('rx', '45'); rim.setAttribute('ry', '18');
-        rim.setAttribute('fill', '#5d4037');
-        rim.setAttribute('stroke', '#8b4513');
+        rim.setAttribute('rx', '34'); rim.setAttribute('ry', '13');
+        rim.setAttribute('fill', colors.pitRimDark);
+        rim.setAttribute('stroke', colors.pitRim);
         rim.setAttribute('stroke-width', '3');
         svg.appendChild(rim);
 
         const hole = document.createElementNS(SVG_NS, 'ellipse');
-        hole.classList.add('arrow-line', 'pit-hole-source');
+        hole.classList.add('arrow-line', 'pit-hole');
         hole.setAttribute('cx', p.x); hole.setAttribute('cy', p.y);
-        hole.setAttribute('rx', '36'); hole.setAttribute('ry', '13');
+        hole.setAttribute('rx', '26'); hole.setAttribute('ry', '9');
         hole.setAttribute('fill', 'url(#pitGrad)');
         svg.appendChild(hole);
 
         const deep = document.createElementNS(SVG_NS, 'ellipse');
         deep.classList.add('arrow-line');
         deep.setAttribute('cx', p.x); deep.setAttribute('cy', p.y);
-        deep.setAttribute('rx', '24'); deep.setAttribute('ry', '7');
+        deep.setAttribute('rx', '17'); deep.setAttribute('ry', '5');
         deep.setAttribute('fill', '#000');
         svg.appendChild(deep);
       });
 
       const fallLine = document.createElementNS(SVG_NS, 'line');
       fallLine.classList.add('arrow-line', 'fall-trajectory');
-      fallLine.setAttribute('x1', from.x); fallLine.setAttribute('y1', from.y + 15);
-      fallLine.setAttribute('x2', to.x); fallLine.setAttribute('y2', to.y - 15);
-      fallLine.setAttribute('stroke', '#e74c3c');
-      fallLine.setAttribute('stroke-width', '5');
-      fallLine.setAttribute('stroke-dasharray', '10,8');
+      fallLine.setAttribute('x1', fromEdge.x); fallLine.setAttribute('y1', fromEdge.y + 10);
+      fallLine.setAttribute('x2', toEdge.x); fallLine.setAttribute('y2', toEdge.y - 10);
+      fallLine.setAttribute('stroke', colors.fallLine);
+      fallLine.setAttribute('stroke-width', '4');
+      fallLine.setAttribute('stroke-dasharray', '8,7');
       fallLine.setAttribute('stroke-linecap', 'round');
       svg.appendChild(fallLine);
     }
@@ -637,9 +713,8 @@
       return currentPos;
     }
 
-    // === New triggerChain with conflict + loop behavior ===
     async function triggerChain(team, pieceIdx, landedCell) {
-      const entryCell = landedCell; // remember where they first landed
+      const entryCell = landedCell;
       const visitedCells = new Set([landedCell]);
       let currentCell = landedCell;
       let chainCount = 0;
@@ -648,39 +723,37 @@
       while (chainCount < maxChain) {
         chainCount++;
 
-        // Treasure first
-        if (isTreasureAt(currentCell)) {
+        // Treasure
+        const treasureTeam = getTreasureTeamAt(currentCell);
+        if (treasureTeam) {
           state.revealed.treasures.add(currentCell);
           state[`team${team}`].treasures++;
           const cell = cellElements[currentCell];
-          cell.classList.add('treasure-reveal');
-          await showBanner(`💎 TREASURE! Team ${team} +25 pts`, 'treasure', 1500);
-          cell.classList.remove('treasure-reveal');
+          cell.classList.add(`treasure-reveal-${treasureTeam.toLowerCase()}`);
+          await showBanner(`💎 TREASURE! Team ${team} +25 pts (was Team ${treasureTeam}'s)`, `treasure-${treasureTeam.toLowerCase()}`, 1700);
+          cell.classList.remove(`treasure-reveal-${treasureTeam.toLowerCase()}`);
           renderRevealedItems();
           updateScores();
         }
 
-        // CONFLICT: snake AND pitfall at same cell → neutralized, no penalty
         const snake = findBestSnakeFrom(currentCell);
         const pitfall = findPitfallFrom(currentCell);
+
+        // CONFLICT: snake AND pitfall → neutralized, no penalty, stay put
         if (snake && pitfall) {
           state.revealed.snakes.add(currentCell);
           state.revealed.pitfalls.add(currentCell);
           const cell = cellElements[currentCell];
           cell.classList.add('conflict-reveal');
-          await showBanner(`⚖️ NEUTRALIZED! Snake + Pitfall cancel out`, 'conflict', 2000);
+          await showBanner(`⚖️ NEUTRALIZED at ${currentCell}!`, 'conflict', 2000);
           cell.classList.remove('conflict-reveal');
           renderRevealedItems();
-          return; // stay at currentCell, no penalty
+          return;
         }
 
-        // SNAKE only — pick biggest target if multiple
         if (snake) {
           state.revealed.snakes.add(currentCell);
-          const cell = cellElements[currentCell];
-          cell.classList.add('snake-reveal');
-          await showBanner(`🐍 SNAKE! ${currentCell} ↑ ${snake.to}`, 'snake', 1400);
-          cell.classList.remove('snake-reveal');
+          await showBanner(`🐍 SNAKE! ${currentCell} ↑ ${snake.to}`, `snake-${snake.team.toLowerCase()}`, 1400);
           renderRevealedItems();
           state[`team${team}`].pieces[pieceIdx] = snake.to;
           renderPieces();
@@ -689,9 +762,8 @@
           cellElements[snake.to].classList.remove('highlight');
           currentCell = snake.to;
 
-          // LOOP: revisited a cell → revert to entry, no penalty
           if (visitedCells.has(currentCell)) {
-            await showBanner(`🔄 LOOP! Returning to cell ${entryCell}`, 'loop', 2200);
+            await showBanner(`🔄 LOOP! Back to cell ${entryCell}`, 'loop', 2200);
             state[`team${team}`].pieces[pieceIdx] = entryCell;
             renderPieces();
             cellElements[entryCell].classList.add('highlight');
@@ -703,13 +775,9 @@
           continue;
         }
 
-        // PITFALL only
         if (pitfall) {
           state.revealed.pitfalls.add(currentCell);
-          const cell = cellElements[currentCell];
-          cell.classList.add('pitfall-reveal');
-          await showBanner(`🕳️ PITFALL! ${currentCell} ↓ ${pitfall.to}`, 'pitfall', 1400);
-          cell.classList.remove('pitfall-reveal');
+          await showBanner(`🕳️ PITFALL! ${currentCell} ↓ ${pitfall.to}`, `pitfall-${pitfall.team.toLowerCase()}`, 1400);
           renderRevealedItems();
           state[`team${team}`].pieces[pieceIdx] = pitfall.to;
           renderPieces();
@@ -719,7 +787,7 @@
           currentCell = pitfall.to;
 
           if (visitedCells.has(currentCell)) {
-            await showBanner(`🔄 LOOP! Returning to cell ${entryCell}`, 'loop', 2200);
+            await showBanner(`🔄 LOOP! Back to cell ${entryCell}`, 'loop', 2200);
             state[`team${team}`].pieces[pieceIdx] = entryCell;
             renderPieces();
             cellElements[entryCell].classList.add('highlight');
@@ -731,7 +799,7 @@
           continue;
         }
 
-        break; // nothing triggered
+        break;
       }
 
       if (currentCell === 25) {
@@ -762,14 +830,17 @@
       const banner = document.getElementById('phaseBanner');
       const boardWrap = document.getElementById('boardWrapper');
       const score = document.getElementById('scorePanel');
+      const legend = document.getElementById('legend');
       if (state.phase === 'setup') {
         banner.classList.remove('hidden');
         boardWrap.classList.add('hidden');
         score.classList.add('hidden');
+        legend.classList.add('hidden');
       } else {
         banner.classList.add('hidden');
         boardWrap.classList.remove('hidden');
         score.classList.remove('hidden');
+        legend.classList.remove('hidden');
       }
       updateGameStatusBadge();
     }
