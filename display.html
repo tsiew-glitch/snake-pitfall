@@ -98,8 +98,7 @@
     .cell.goal { background: linear-gradient(145deg, #d4af37, #b8941f); color: #0a0e27; }
     .cell-number {
       position: absolute;
-      top: 3px;
-      left: 5px;
+      top: 3px; left: 5px;
       font-size: 0.85em;
       opacity: 0.7;
       z-index: 4;
@@ -167,6 +166,7 @@
       50% { opacity: 1; }
     }
 
+    /* === Merged Team Scorecards === */
     #scorePanel {
       display: flex;
       gap: 30px;
@@ -174,70 +174,71 @@
       font-size: 1.1em;
     }
     #scorePanel.hidden { display: none; }
-    .team-score {
-      padding: 12px 24px;
-      border-radius: 12px;
+    .team-card {
+      padding: 14px 20px;
+      border-radius: 14px;
       background: rgba(255,255,255,0.08);
-      min-width: 280px;
+      min-width: 320px;
       text-align: center;
       transition: all 0.3s;
+      border: 2px solid transparent;
     }
-    .team-score.active {
-      background: rgba(255, 215, 0, 0.2);
+    .team-card.active {
+      background: rgba(255, 215, 0, 0.18);
       box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
       transform: scale(1.05);
     }
-    .team-score.winner {
+    .team-card.winner {
       background: rgba(76, 175, 80, 0.35);
       box-shadow: 0 0 30px rgba(76, 175, 80, 0.8);
       transform: scale(1.1);
-      border: 2px solid #4caf50;
+      border-color: #4caf50;
     }
-    .team-score .label { font-size: 1.15em; font-weight: bold; margin-bottom: 6px; }
-    .team-score .total { font-size: 1.8em; font-weight: bold; margin-top: 6px; }
-    .team-a-color { color: #4a90e2; }
-    .team-b-color { color: #e74c3c; }
-    .breakdown { font-size: 0.8em; opacity: 0.85; margin: 4px 0; }
-    .piece-positions { font-size: 0.85em; }
-
-    /* === Legend === */
-    #legend {
-      margin-top: 15px;
-      padding: 12px 24px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 12px;
+    .team-card.team-a { border-color: rgba(74, 144, 226, 0.6); }
+    .team-card.team-b { border-color: rgba(231, 76, 60, 0.6); }
+    .team-card .team-name {
+      font-size: 1.4em;
+      font-weight: bold;
+      margin-bottom: 8px;
       display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .team-card.team-a .team-name { color: #4a90e2; text-shadow: 0 0 8px rgba(74,144,226,0.4); }
+    .team-card.team-b .team-name { color: #e74c3c; text-shadow: 0 0 8px rgba(231,76,60,0.4); }
+    .piece-positions { font-size: 0.95em; margin-bottom: 4px; }
+    .breakdown { font-size: 0.85em; opacity: 0.9; margin-bottom: 6px; }
+    .total { font-size: 1.7em; font-weight: bold; }
+
+    /* Legend row inside team card */
+    .legend-row {
+      display: flex;
+      gap: 14px;
       justify-content: center;
       align-items: center;
-      font-size: 0.95em;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.2);
     }
-    #legend.hidden { display: none; }
-    .legend-team {
+    .legend-icon-wrapper {
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      padding: 6px 14px;
-      border-radius: 8px;
-      background: rgba(0,0,0,0.25);
-    }
-    .legend-team.team-a-border { border: 2px solid #4a90e2; }
-    .legend-team.team-b-border { border: 2px solid #e74c3c; }
-    .legend-team-title { font-weight: bold; font-size: 1.05em; text-align: center; }
-    .legend-row { display: flex; gap: 12px; }
-    .legend-item {
-      display: inline-flex;
       align-items: center;
-      gap: 4px;
-      font-size: 0.95em;
+      gap: 2px;
     }
-    .legend-swatch {
-      width: 16px; height: 16px;
-      border-radius: 4px;
-      display: inline-block;
-      border: 1px solid rgba(255,255,255,0.3);
+    .legend-icon-wrapper svg {
+      width: 38px;
+      height: 38px;
     }
+    .legend-icon-wrapper .legend-label {
+      font-size: 0.7em;
+      opacity: 0.85;
+    }
+
+    /* Top header colors */
+    .turn-indicator-a { color: #4a90e2; text-shadow: 0 0 6px rgba(74,144,226,0.5); font-weight: bold; }
+    .turn-indicator-b { color: #e74c3c; text-shadow: 0 0 6px rgba(231,76,60,0.5); font-weight: bold; }
 
     #bigBanner {
       position: fixed;
@@ -289,7 +290,7 @@
 <body>
   <h1>🎲 Snake & Pitfall</h1>
   <div id="topBar">
-    <div>Turn: <span id="turnIndicator" class="team-a-color">🔵 Team A</span></div>
+    <div>Turn: <span id="turnIndicator" class="turn-indicator-a">🔵 Team A</span></div>
     <div id="gameStatusBadge" class="hidden"></div>
     <div id="status" class="waiting">⏳ Waiting for GM...</div>
   </div>
@@ -300,17 +301,14 @@
     <div id="board"></div>
     <svg id="arrowSvg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
       <defs>
-        <!-- Team A snake (green) -->
         <radialGradient id="snakeHeadGradA" cx="40%" cy="40%" r="60%">
           <stop offset="0%" stop-color="#7be899" />
           <stop offset="100%" stop-color="#1e7d3f" />
         </radialGradient>
-        <!-- Team B snake (purple) -->
         <radialGradient id="snakeHeadGradB" cx="40%" cy="40%" r="60%">
           <stop offset="0%" stop-color="#d2a8e8" />
           <stop offset="100%" stop-color="#6c3483" />
         </radialGradient>
-        <!-- Pit gradient (shared, just different rim colors) -->
         <radialGradient id="pitGrad" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stop-color="#000" />
           <stop offset="70%" stop-color="#1a1a1a" />
@@ -321,36 +319,19 @@
   </div>
 
   <div id="scorePanel" class="hidden">
-    <div class="team-score active" id="teamAPanel">
-      <div class="label team-a-color">🔵 Team A</div>
+    <div class="team-card team-a active" id="teamAPanel">
+      <div class="team-name" id="teamAName">🔵 Team A</div>
       <div class="piece-positions" id="teamAPieces">①1 ②1 ③1 ④1</div>
       <div class="breakdown">💎 <span id="teamATreasures">0</span> · Pieces sum: <span id="teamAPieceScore">4</span></div>
       <div class="total">TOTAL: <span id="teamATotal">4</span></div>
+      <div class="legend-row" id="teamALegend"></div>
     </div>
-    <div class="team-score" id="teamBPanel">
-      <div class="label team-b-color">🔴 Team B</div>
+    <div class="team-card team-b" id="teamBPanel">
+      <div class="team-name" id="teamBName">🔴 Team B</div>
       <div class="piece-positions" id="teamBPieces">①1 ②1 ③1 ④1</div>
       <div class="breakdown">💎 <span id="teamBTreasures">0</span> · Pieces sum: <span id="teamBPieceScore">4</span></div>
       <div class="total">TOTAL: <span id="teamBTotal">4</span></div>
-    </div>
-  </div>
-
-  <div id="legend" class="hidden">
-    <div class="legend-team team-a-border">
-      <div class="legend-team-title team-a-color">🔵 Team A</div>
-      <div class="legend-row">
-        <span class="legend-item"><span class="legend-swatch" style="background:#27ae60;"></span>🐍</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#c0392b;"></span>🕳️</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#d4af37;"></span>💎</span>
-      </div>
-    </div>
-    <div class="legend-team team-b-border">
-      <div class="legend-team-title team-b-color">🔴 Team B</div>
-      <div class="legend-row">
-        <span class="legend-item"><span class="legend-swatch" style="background:#9b59b6;"></span>🐍</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#e67e22;"></span>🕳️</span>
-        <span class="legend-item"><span class="legend-swatch" style="background:#1abc9c;"></span>💎</span>
-      </div>
+      <div class="legend-row" id="teamBLegend"></div>
     </div>
   </div>
 
@@ -359,28 +340,27 @@
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
-    // === Team color palette ===
     const TEAM_COLORS = {
       A: {
         snakeOuter: '#1e7d3f', snakeMain: '#27ae60', snakeInner: '#52d685',
         snakeHeadGrad: 'snakeHeadGradA',
         pitRim: '#8b4513', pitRimDark: '#5d4037',
         fallLine: '#c0392b',
-        treasureBg: 'treasure-a'
+        treasureFill: '#ffd700', treasureStroke: '#b8941f'
       },
       B: {
         snakeOuter: '#6c3483', snakeMain: '#9b59b6', snakeInner: '#d2a8e8',
         snakeHeadGrad: 'snakeHeadGradB',
         pitRim: '#a0522d', pitRimDark: '#6b3e1a',
         fallLine: '#e67e22',
-        treasureBg: 'treasure-b'
+        treasureFill: '#1abc9c', treasureStroke: '#0e8a6f'
       }
     };
 
     const state = {
       phase: 'setup',
-      teamA: { pieces: [1, 1, 1, 1], treasures: 0 },
-      teamB: { pieces: [1, 1, 1, 1], treasures: 0 },
+      teamA: { pieces: [1, 1, 1, 1], treasures: 0, name: 'Team A' },
+      teamB: { pieces: [1, 1, 1, 1], treasures: 0, name: 'Team B' },
       currentTurn: 'A',
       items: {
         A: { snakes: [], pitfalls: [], treasures: [] },
@@ -411,8 +391,8 @@
       aPanel.classList.remove('active', 'winner');
       bPanel.classList.remove('active', 'winner');
       let winText = '';
-      if (aTotal > bTotal) { aPanel.classList.add('winner'); winText = `🏆 TEAM A WINS! ${aTotal} vs ${bTotal}`; }
-      else if (bTotal > aTotal) { bPanel.classList.add('winner'); winText = `🏆 TEAM B WINS! ${bTotal} vs ${aTotal}`; }
+      if (aTotal > bTotal) { aPanel.classList.add('winner'); winText = `🏆 ${state.teamA.name} WINS! ${aTotal} vs ${bTotal}`; }
+      else if (bTotal > aTotal) { bPanel.classList.add('winner'); winText = `🏆 ${state.teamB.name} WINS! ${bTotal} vs ${aTotal}`; }
       else { winText = `🤝 DRAW! ${aTotal} – ${bTotal}`; aPanel.classList.add('winner'); bPanel.classList.add('winner'); }
       setTimeout(() => showBanner(winText, 'winner', 4000), 200);
     }
@@ -445,7 +425,6 @@
         y: visualRow * cellSize + cellSize / 2
       };
     }
-    // Get a point near the EDGE of cell toward the destination — keeps center clear for pieces
     function getEdgePoint(fromCell, toCell, edgeBias = 0.35) {
       const from = getCellCenter(fromCell);
       const to = getCellCenter(toCell);
@@ -484,7 +463,6 @@
       updateScores();
     }
 
-    // Find all snakes from cell (with team info)
     function getAllSnakesFrom(cellNum) {
       const snakes = [];
       for (const team of ['A', 'B']) {
@@ -513,9 +491,6 @@
       }
       return null;
     }
-    function isTreasureAt(cellNum) {
-      return getTreasureTeamAt(cellNum) !== null;
-    }
 
     function renderRevealedItems() {
       const svg = document.getElementById('arrowSvg');
@@ -532,10 +507,8 @@
       });
     }
 
-    // === Snake drawing with team color and edge offset ===
     function drawCuteSnake(fromCell, toCell, team) {
       const colors = TEAM_COLORS[team];
-      // Offset endpoints toward edge (keep center clear for pieces)
       const fromEdge = getEdgePoint(fromCell, toCell, 0.32);
       const toEdge = getEdgePoint(toCell, fromCell, 0.32);
       const svg = document.getElementById('arrowSvg');
@@ -553,7 +526,6 @@
       const ctrl2Y = fromEdge.y + dy * 0.7 - perpY * wave;
       const pathD = `M ${fromEdge.x} ${fromEdge.y} C ${ctrl1X} ${ctrl1Y}, ${ctrl2X} ${ctrl2Y}, ${toEdge.x} ${toEdge.y}`;
 
-      // Layered body
       [
         { color: colors.snakeOuter, width: 22 },
         { color: colors.snakeMain, width: 16 },
@@ -570,7 +542,6 @@
         svg.appendChild(p);
       });
 
-      // Smaller head
       const head = document.createElementNS(SVG_NS, 'circle');
       head.classList.add('arrow-line', 'snake-head');
       head.setAttribute('cx', toEdge.x); head.setAttribute('cy', toEdge.y);
@@ -579,14 +550,12 @@
       head.setAttribute('stroke', colors.snakeOuter); head.setAttribute('stroke-width', '2');
       svg.appendChild(head);
 
-      // Smaller tail
       const tail = document.createElementNS(SVG_NS, 'circle');
       tail.classList.add('arrow-line');
       tail.setAttribute('cx', fromEdge.x); tail.setAttribute('cy', fromEdge.y);
       tail.setAttribute('r', '10'); tail.setAttribute('fill', colors.snakeOuter);
       svg.appendChild(tail);
 
-      // Smaller eyes
       [[-7, -6], [7, -6]].forEach(([ox, oy]) => {
         const eye = document.createElementNS(SVG_NS, 'circle');
         eye.classList.add('arrow-line');
@@ -600,7 +569,6 @@
         svg.appendChild(pup);
       });
 
-      // Smaller tongue
       const tongue = document.createElementNS(SVG_NS, 'path');
       tongue.classList.add('arrow-line', 'snake-tongue');
       tongue.setAttribute('d',
@@ -614,7 +582,6 @@
       svg.appendChild(tongue);
     }
 
-    // === Pitfall drawing with team color and edge offset ===
     function drawCutePitfall(fromCell, toCell, team) {
       const colors = TEAM_COLORS[team];
       const fromEdge = getEdgePoint(fromCell, toCell, 0.30);
@@ -623,7 +590,6 @@
       const SVG_NS = 'http://www.w3.org/2000/svg';
 
       [fromEdge, toEdge].forEach(p => {
-        // Smaller pit
         const rim = document.createElementNS(SVG_NS, 'ellipse');
         rim.classList.add('arrow-line', 'pit-hole');
         rim.setAttribute('cx', p.x); rim.setAttribute('cy', p.y);
@@ -657,6 +623,74 @@
       fallLine.setAttribute('stroke-dasharray', '8,7');
       fallLine.setAttribute('stroke-linecap', 'round');
       svg.appendChild(fallLine);
+    }
+
+    // === Mini-icon SVGs for legend ===
+    function miniSnakeSVG(team) {
+      const c = TEAM_COLORS[team];
+      return `
+        <svg viewBox="0 0 60 60">
+          <path d="M 8 38 Q 18 18, 30 30 T 52 22" stroke="${c.snakeOuter}" stroke-width="9" fill="none" stroke-linecap="round"/>
+          <path d="M 8 38 Q 18 18, 30 30 T 52 22" stroke="${c.snakeMain}" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <circle cx="52" cy="22" r="9" fill="url(#${c.snakeHeadGrad})" stroke="${c.snakeOuter}" stroke-width="1.5"/>
+          <circle cx="49" cy="20" r="2" fill="white"/>
+          <circle cx="55" cy="20" r="2" fill="white"/>
+          <circle cx="49.5" cy="20.5" r="1" fill="#000"/>
+          <circle cx="55.5" cy="20.5" r="1" fill="#000"/>
+        </svg>`;
+    }
+    function miniPitfallSVG(team) {
+      const c = TEAM_COLORS[team];
+      return `
+        <svg viewBox="0 0 60 60">
+          <ellipse cx="15" cy="20" rx="10" ry="4" fill="${c.pitRimDark}" stroke="${c.pitRim}" stroke-width="1.5"/>
+          <ellipse cx="15" cy="20" rx="7" ry="2.5" fill="#000"/>
+          <line x1="15" y1="24" x2="45" y2="36" stroke="${c.fallLine}" stroke-width="2.5" stroke-dasharray="3,3"/>
+          <ellipse cx="45" cy="40" rx="10" ry="4" fill="${c.pitRimDark}" stroke="${c.pitRim}" stroke-width="1.5"/>
+          <ellipse cx="45" cy="40" rx="7" ry="2.5" fill="#000"/>
+        </svg>`;
+    }
+    function miniTreasureSVG(team) {
+      const c = TEAM_COLORS[team];
+      return `
+        <svg viewBox="0 0 60 60">
+          <polygon points="30,8 50,30 30,52 10,30"
+            fill="${c.treasureFill}" stroke="${c.treasureStroke}" stroke-width="3"/>
+          <polygon points="30,8 50,30 30,30" fill="rgba(255,255,255,0.35)"/>
+        </svg>`;
+    }
+
+    function renderLegends() {
+      ['A', 'B'].forEach(team => {
+        const el = document.getElementById(`team${team}Legend`);
+        el.innerHTML = `
+          <div class="legend-icon-wrapper">${miniSnakeSVG(team)}<div class="legend-label">Snake</div></div>
+          <div class="legend-icon-wrapper">${miniPitfallSVG(team)}<div class="legend-label">Pitfall</div></div>
+          <div class="legend-icon-wrapper">${miniTreasureSVG(team)}<div class="legend-label">Treasure</div></div>
+        `;
+      });
+    }
+
+    function renderTeamNames() {
+      const aColor = '🔵';
+      const bColor = '🔴';
+      document.getElementById('teamAName').innerHTML = `${aColor} ${escapeHTML(state.teamA.name)}`;
+      document.getElementById('teamBName').innerHTML = `${bColor} ${escapeHTML(state.teamB.name)}`;
+      // Update turn indicator
+      const ind = document.getElementById('turnIndicator');
+      if (state.currentTurn === 'A') {
+        ind.innerHTML = `🔵 ${escapeHTML(state.teamA.name)}`;
+        ind.className = 'turn-indicator-a';
+      } else {
+        ind.innerHTML = `🔴 ${escapeHTML(state.teamB.name)}`;
+        ind.className = 'turn-indicator-b';
+      }
+    }
+
+    function escapeHTML(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[c]));
     }
 
     function updateScores() {
@@ -719,18 +753,18 @@
       let currentCell = landedCell;
       let chainCount = 0;
       const maxChain = 12;
+      const teamName = state[`team${team}`].name;
 
       while (chainCount < maxChain) {
         chainCount++;
 
-        // Treasure
         const treasureTeam = getTreasureTeamAt(currentCell);
         if (treasureTeam) {
           state.revealed.treasures.add(currentCell);
           state[`team${team}`].treasures++;
           const cell = cellElements[currentCell];
           cell.classList.add(`treasure-reveal-${treasureTeam.toLowerCase()}`);
-          await showBanner(`💎 TREASURE! Team ${team} +25 pts (was Team ${treasureTeam}'s)`, `treasure-${treasureTeam.toLowerCase()}`, 1700);
+          await showBanner(`💎 TREASURE! ${teamName} +25 pts`, `treasure-${treasureTeam.toLowerCase()}`, 1700);
           cell.classList.remove(`treasure-reveal-${treasureTeam.toLowerCase()}`);
           renderRevealedItems();
           updateScores();
@@ -739,7 +773,6 @@
         const snake = findBestSnakeFrom(currentCell);
         const pitfall = findPitfallFrom(currentCell);
 
-        // CONFLICT: snake AND pitfall → neutralized, no penalty, stay put
         if (snake && pitfall) {
           state.revealed.snakes.add(currentCell);
           state.revealed.pitfalls.add(currentCell);
@@ -812,39 +845,34 @@
     }
 
     function updateTurn() {
-      const indicator = document.getElementById('turnIndicator');
       const aPanel = document.getElementById('teamAPanel');
       const bPanel = document.getElementById('teamBPanel');
       if (state.currentTurn === 'A') {
-        indicator.innerHTML = '🔵 Team A';
-        indicator.className = 'team-a-color';
         if (!state.gameLocked) { aPanel.classList.add('active'); bPanel.classList.remove('active'); }
       } else {
-        indicator.innerHTML = '🔴 Team B';
-        indicator.className = 'team-b-color';
         if (!state.gameLocked) { bPanel.classList.add('active'); aPanel.classList.remove('active'); }
       }
+      renderTeamNames();
     }
 
     function updatePhase() {
       const banner = document.getElementById('phaseBanner');
       const boardWrap = document.getElementById('boardWrapper');
       const score = document.getElementById('scorePanel');
-      const legend = document.getElementById('legend');
       if (state.phase === 'setup') {
         banner.classList.remove('hidden');
         boardWrap.classList.add('hidden');
         score.classList.add('hidden');
-        legend.classList.add('hidden');
       } else {
         banner.classList.add('hidden');
         boardWrap.classList.remove('hidden');
         score.classList.remove('hidden');
-        legend.classList.remove('hidden');
       }
       updateGameStatusBadge();
     }
 
+    renderLegends();
+    renderTeamNames();
     renderPieces();
     updateTurn();
     updatePhase();
@@ -876,7 +904,7 @@
           await sleep(200);
           await triggerChain(msg.team, msg.pieceIdx, landedCell);
           if (checkAllPiecesAtGoal(msg.team)) {
-            await showBanner(`🏆 Team ${msg.team} got all 4 pieces to GOAL!`, 'winner', 3000);
+            await showBanner(`🏆 ${state[`team${msg.team}`].name} got all 4 pieces to GOAL!`, 'winner', 3000);
           }
           break;
         case 'switchTurn':
@@ -885,8 +913,8 @@
           updateTurn();
           break;
         case 'reset':
-          state.teamA = { pieces: [1, 1, 1, 1], treasures: 0 };
-          state.teamB = { pieces: [1, 1, 1, 1], treasures: 0 };
+          state.teamA = { pieces: [1, 1, 1, 1], treasures: 0, name: state.teamA.name };
+          state.teamB = { pieces: [1, 1, 1, 1], treasures: 0, name: state.teamB.name };
           state.currentTurn = 'A';
           state.phase = 'setup';
           state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
@@ -902,17 +930,25 @@
         case 'startGame':
           state.phase = 'playing';
           if (msg.items) state.items = msg.items;
+          if (msg.teamAName) state.teamA.name = msg.teamAName;
+          if (msg.teamBName) state.teamB.name = msg.teamBName;
           state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
           state.gameLocked = false;
           document.getElementById('board').classList.remove('locked');
           document.getElementById('teamAPanel').classList.remove('winner');
           document.getElementById('teamBPanel').classList.remove('winner');
           renderRevealedItems();
+          renderTeamNames();
           updatePhase();
           break;
         case 'setupMode':
           state.phase = 'setup';
           updatePhase();
+          break;
+        case 'updateNames':
+          if (msg.teamAName !== undefined) state.teamA.name = msg.teamAName;
+          if (msg.teamBName !== undefined) state.teamB.name = msg.teamBName;
+          renderTeamNames();
           break;
         case 'endGameNow':
           if (!state.gameLocked) await lockGame();
@@ -922,4 +958,3 @@
   </script>
 </body>
 </html>
-``
