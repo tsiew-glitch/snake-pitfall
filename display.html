@@ -727,15 +727,19 @@ for (let r = 0; r < 5; r++) {
 }
 
     function renderPieces() {
-      for (let i = 1; i <= 25; i++) document.getElementById(`pieces-${i}`).innerHTML = '';
-      state.teamA.pieces.forEach((pos, idx) => {
-        document.getElementById(`pieces-${pos}`).innerHTML += `<span class="piece">${pieceEmoji('A', idx)}</span>`;
-      });
-      state.teamB.pieces.forEach((pos, idx) => {
-        document.getElementById(`pieces-${pos}`).innerHTML += `<span class="piece">${pieceEmoji('B', idx)}</span>`;
-      });
-      updateScores();
-    }
+  for (let i = 1; i <= 25; i++) {
+    document.getElementById('pieces-' + i).innerHTML = '';
+  }
+  state.teamA.pieces.forEach(function(pos, idx) {
+    document.getElementById('pieces-' + pos).innerHTML +=
+      '<span class="piece">' + pieceEmoji('A', idx) + '</span>';
+  });
+  state.teamB.pieces.forEach(function(pos, idx) {
+    document.getElementById('pieces-' + pos).innerHTML +=
+      '<span class="piece">' + pieceEmoji('B', idx) + '</span>';
+  });
+  updateScores();
+}
 
     function getAllSnakesFrom(cellNum) {
       const snakes = [];
