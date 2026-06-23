@@ -557,14 +557,6 @@
         if (p && p.catch) p.catch(() => {}); // ignore autoplay blocks
       } catch (e) {}
     }
-    function stopSound(id) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      try {
-        el.pause();
-        el.currentTime = 0;
-      } catch (e) {}
-    }
     function toggleMute() {
       isMuted = !isMuted;
       const btn = document.getElementById('muteBtn');
