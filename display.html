@@ -649,24 +649,31 @@ function pauseBgMusic() {
     }
 
     function declareWinner() {
-      const aTotal = state.teamA.pieces.reduce((s, p) => s + p, 0) + (state.teamA.treasures * 25);
-      const bTotal = state.teamB.pieces.reduce((s, p) => s + p, 0) + (state.teamB.treasures * 25);
-      const aPanel = document.getElementById('teamAPanel');
-      const bPanel = document.getElementById('teamBPanel');
-      aPanel.classList.remove('active', 'winner');
-      bPanel.classList.remove('active', 'winner');
-      let winText = '';
-      if (aTotal > bTotal) { aPanel.classList.add('winner'); winText = `🏆 ${state.teamA.name} WINS! ${aTotal} vs ${bTotal}`; }
-      else if (bTotal > aTotal) { bPanel.classList.add('winner'); winText = `🏆 ${state.teamB.name} WINS! ${bTotal} vs ${aTotal}`; }
-      else { winText = `🤝 DRAW! ${aTotal} – ${bTotal}`; aPanel.classList.add('winner'); bPanel.classList.add('winner'); }
-      setTimeout(() => {
-        playSound('sndWinner');
-        showBanner(winText, 'winner', 4000);
-        // Game over splash
-        document.getElementById('gameOverWinner').textContent = winText;
-        document.getElementById('gameOverSplash').classList.add('show');
-      }, 200);
-    }
+  const aTotal = state.teamA.pieces.reduce((s, p) => s + p, 0) + (state.teamA.treasures * 25);
+  const bTotal = state.teamB.pieces.reduce((s, p) => s + p, 0) + (state.teamB.treasures * 25);
+  const aPanel = document.getElementById('teamAPanel');
+  const bPanel = document.getElementById('teamBPanel');
+  aPanel.classList.remove('active', 'winner');
+  bPanel.classList.remove('active', 'winner');
+  let winText = '';
+  if (aTotal > bTotal) {
+    aPanel.classList.add('winner');
+    winText = '\u{1F3C6} ' + state.teamA.name + ' WINS! ' + aTotal + ' vs ' + bTotal;
+  } else if (bTotal > aTotal) {
+    bPanel.classList.add('winner');
+    winText = '\u{1F3C6} ' + state.teamB.name + ' WINS! ' + bTotal + ' vs ' + aTotal;
+  } else {
+    winText = '\u{1F91D} DRAW! ' + aTotal + ' - ' + bTotal;
+    aPanel.classList.add('winner');
+    bPanel.classList.add('winner');
+  }
+  setTimeout(function() {
+    playSound('sndWinner');
+    showBanner(winText, 'winner', 4000);
+    document.getElementById('gameOverWinner').textContent = winText;
+    document.getElementById('gameOverSplash').classList.add('show');
+  }, 200);
+}
 
     function updateGameStatusBadge() {
       const badge = document.getElementById('gameStatusBadge');
