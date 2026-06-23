@@ -710,22 +710,21 @@ function pauseBgMusic() {
     }
 
     const board = document.getElementById('board');
-    const cellElements = {};
-    for (let r = 0; r < 5; r++) {
-      for (let c = 0; c < 5; c++) {
-        const cellNum = getCellNumberAt(r, c);
-        const cell = document.createElement('div');
-        cell.className = 'cell';
-        if (cellNum === 1) cell.classList.add('start');
-        if (cellNum === 25) cell.classList.add('goal');
-        cell.innerHTML = `
-          <div class="cell-number">${cellNum}</div>
-          <div class="pieces" id="pieces-${cellNum}"></div>
-        `;
-        board.appendChild(cell);
-        cellElements[cellNum] = cell;
-      }
-    }
+const cellElements = {};
+for (let r = 0; r < 5; r++) {
+  for (let c = 0; c < 5; c++) {
+    const cellNum = getCellNumberAt(r, c);
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if (cellNum === 1) cell.classList.add('start');
+    if (cellNum === 25) cell.classList.add('goal');
+    cell.innerHTML =
+      '<div class="cell-number">' + cellNum + '</div>' +
+      '<div class="pieces" id="pieces-' + cellNum + '"></div>';
+    board.appendChild(cell);
+    cellElements[cellNum] = cell;
+  }
+}
 
     function renderPieces() {
       for (let i = 1; i <= 25; i++) document.getElementById(`pieces-${i}`).innerHTML = '';
