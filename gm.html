@@ -26,7 +26,7 @@
     .connected { background: #4caf50; }
     .error { background: #f44336; }
 
-    #phaseToggle { display: flex; gap: 4px; margin-bottom: 10px; }
+    #phaseToggle { display: flex; gap: 4px; margin-bottom: 10px; position: relative; }
     .phase-tab {
       flex: 1; padding: 9px;
       border: 2px solid #4a90e2;
@@ -34,8 +34,16 @@
       color: white; border-radius: 8px;
       font-size: 0.95em; font-weight: bold;
       cursor: pointer;
+      position: relative;
     }
     .phase-tab.active { background: #4a90e2; }
+    .phase-tab.locked::before {
+      content: '🔒';
+      position: absolute;
+      top: 2px;
+      right: 6px;
+      font-size: 0.85em;
+    }
 
     .panel {
       background: rgba(255,255,255,0.08);
@@ -45,7 +53,6 @@
     }
     .panel h2 { text-align: center; margin: 0 0 8px; font-size: 0.95em; opacity: 0.9; }
 
-    /* === Team Name Inputs === */
     #nameInputs { display: flex; gap: 6px; }
     .name-input-wrap {
       flex: 1;
@@ -202,6 +209,7 @@
     }
     #gameStatusBanner.hidden { display: none; }
     #gameStatusBanner.game-over { background: rgba(212, 175, 55, 0.5); border: 2px solid #d4af37; color: #1a1f3a; }
+    #gameStatusBanner.playing { background: rgba(39, 174, 96, 0.3); border: 2px solid #27ae60; }
 
     #pieceSelector {
       display: grid;
@@ -283,12 +291,11 @@
   <div id="status" class="waiting">⏳ Connecting...</div>
 
   <div id="phaseToggle">
-    <button class="phase-tab active" id="setupTab" onclick="switchPhase('setup')">🛠️ Setup</button>
-    <button class="phase-tab" id="playTab" onclick="switchPhase('playing')">🎲 Play</button>
+    <button class="phase-tab active" id="setupTab" onclick="onSetupTabClick()">🛠️ Setup</button>
+    <button class="phase-tab" id="playTab" onclick="onPlayTabClick()">🎲 Play</button>
   </div>
 
   <div id="setupPhase">
-    <!-- TEAM NAMES (NEW) -->
     <div class="panel">
       <h2>🏷️ Team Names</h2>
       <div id="nameInputs">
@@ -342,7 +349,7 @@
   </div>
 
   <div id="playPhase" style="display:none;">
-    <div id="gameStatusBanner" class="hidden"></div>
+    <div id="gameStatusBanner" class="playing">🎮 Game in progress</div>
     <div id="turnDisplay" class="team-a">🔵 Team A's Turn</div>
 
     <div class="panel">
@@ -373,7 +380,7 @@
       <h2>🔄 Controls</h2>
       <button class="action-btn switch" id="switchTurnBtn" onclick="switchTurn()">🔄 Switch Turn</button>
       <button class="action-btn endgame" id="endGameBtn" onclick="endGameNow()">🏆 End Game Now</button>
-      <button class="action-btn warning" onclick="backToSetup()">🛠️ Back to Setup</button>
+      <button class="action-btn warning" onclick="backToSetup()">🛠️ Back to Setup (unlock)</button>
       <button class="action-btn danger" onclick="resetGame()">🔄 Reset Game</button>
     </div>
   </div>
@@ -387,13 +394,13 @@
     let currentTool = 'snake';
     let sourceCell = null;
     let validTargets = [];
+    let gameInProgress = false; // becomes true after Start Game
 
     const items = {
       A: { snakes: [], pitfalls: [], treasures: [] },
       B: { snakes: [], pitfalls: [], treasures: [] }
     };
 
-    // Team names
     const teamNames = { A: 'Team A', B: 'Team B' };
 
     const PIECE_NUMS = ['①', '②', '③', '④'];
@@ -403,12 +410,38 @@
     let selectedPieceIdx = null;
     let gameLocked = false;
 
-    // === Team name management ===
+    // === Tab click handlers with locking ===
+    function onSetupTabClick() {
+      if (phase === 'setup') return; // already on setup
+      // If game in progress, require confirmation
+      if (gameInProgress && !gameLocked) {
+        const ok = confirm(
+          '⚠️ A game is currently in progress!\n\n' +
+          'Going back to Setup will LOSE all current game progress (piece positions, treasures collected, revealed items).\n\n' +
+          'Are you sure you want to go back to Setup?'
+        );
+        if (!ok) return;
+        // Second confirm for safety
+        const ok2 = confirm(
+          '🚨 Final confirmation:\n\n' +
+          'This action CANNOT be undone. Click OK only if you really want to abandon the current game.'
+        );
+        if (!ok2) return;
+      }
+      switchPhase('setup');
+    }
+
+    function onPlayTabClick() {
+      if (phase === 'playing') return;
+      // Going to Play tab without starting a game is OK - shows the play UI but state is empty
+      // But if no items placed, warn
+      switchPhase('playing');
+    }
+
     function onNameChange() {
       teamNames.A = document.getElementById('teamAInput').value.trim() || 'Team A';
       teamNames.B = document.getElementById('teamBInput').value.trim() || 'Team B';
       updateTeamSelectorLabels();
-      // Sync to display in real-time
       if (conn && conn.open) {
         conn.send({ type: 'updateNames', teamAName: teamNames.A, teamBName: teamNames.B });
       }
@@ -660,6 +693,7 @@
       selectedPieceIdx = null;
       selectedDice = null;
       gameLocked = false;
+      gameInProgress = true; // Game is now active — Setup tab will require confirmation
       updateTurnDisplay();
       updateGameStatusBanner();
       switchPhase('playing');
@@ -684,12 +718,26 @@
       document.getElementById('playPhase').style.display = (p === 'playing') ? 'block' : 'none';
       document.getElementById('setupTab').classList.toggle('active', p === 'setup');
       document.getElementById('playTab').classList.toggle('active', p === 'playing');
+
+      // Visual lock indicator on Setup tab when game in progress
+      const setupTab = document.getElementById('setupTab');
+      if (gameInProgress && !gameLocked) {
+        setupTab.classList.add('locked');
+      } else {
+        setupTab.classList.remove('locked');
+      }
+
       if (p === 'setup' && conn && conn.open) conn.send({ type: 'setupMode' });
       if (p === 'playing') renderPieceSelector();
     }
 
     function backToSetup() {
-      if (!confirm('Go back to setup? Play progress lost.')) return;
+      // This is the explicit "unlock" button - acts like the tab click but with own confirm
+      const ok = confirm(
+        '⚠️ Going back to Setup will lose the current game progress.\n\n' +
+        'Are you sure?'
+      );
+      if (!ok) return;
       switchPhase('setup');
     }
 
@@ -706,10 +754,13 @@
 
     function updateGameStatusBanner() {
       const el = document.getElementById('gameStatusBanner');
-      el.classList.remove('hidden', 'game-over');
+      el.classList.remove('hidden', 'game-over', 'playing');
       if (gameLocked) {
         el.textContent = '🏆 Game Over — Locked';
         el.classList.add('game-over');
+      } else if (gameInProgress) {
+        el.textContent = '🎮 Game in progress';
+        el.classList.add('playing');
       } else {
         el.classList.add('hidden');
       }
@@ -808,6 +859,7 @@
       selectedDice = null;
       selectedPieceIdx = null;
       gameLocked = false;
+      gameInProgress = false; // Game cleared → unlock setup tab
       updateGameStatusBanner();
       switchPhase('setup');
       selectTeam('A');
@@ -826,7 +878,6 @@
         statusEl.textContent = '🟢 Connected';
         statusEl.className = 'connected';
         conn.send({ type: 'setupMode' });
-        // Send initial names
         conn.send({ type: 'updateNames', teamAName: teamNames.A, teamBName: teamNames.B });
       });
       conn.on('close', () => {
@@ -845,6 +896,7 @@
     updateQuota();
     updatePlacedList();
     selectTool('snake');
+    updateGameStatusBanner();
   </script>
 </body>
 </html>
