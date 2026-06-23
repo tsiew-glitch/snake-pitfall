@@ -742,166 +742,172 @@ for (let r = 0; r < 5; r++) {
 }
 
     function getAllSnakesFrom(cellNum) {
-      const snakes = [];
-      for (const team of ['A', 'B']) {
-        state.items[team].snakes.forEach(s => {
-          if (s.from === cellNum) snakes.push({ team, ...s });
-        });
-      }
-      return snakes;
-    }
-    function findBestSnakeFrom(cellNum) {
-      const all = getAllSnakesFrom(cellNum);
-      if (all.length === 0) return null;
-      return all.reduce((best, s) => (s.to > best.to ? s : best), all[0]);
-    }
-    function findPitfallFrom(cellNum) {
-      for (const team of ['A', 'B']) {
-        const f = state.items[team].pitfalls.find(p => p.from === cellNum);
-        if (f) return { team, ...f };
-      }
-      return null;
-    }
-    function getTreasureTeamAt(cellNum) {
-      if (state.revealed.treasures.has(cellNum)) return null;
-      for (const team of ['A', 'B']) {
-        if (state.items[team].treasures.includes(cellNum)) return team;
-      }
-      return null;
-    }
+  const snakes = [];
+  for (const team of ['A', 'B']) {
+    state.items[team].snakes.forEach(function(s) {
+      if (s.from === cellNum) snakes.push(Object.assign({ team: team }, s));
+    });
+  }
+  return snakes;
+}
+function findBestSnakeFrom(cellNum) {
+  const all = getAllSnakesFrom(cellNum);
+  if (all.length === 0) return null;
+  return all.reduce(function(best, s) { return s.to > best.to ? s : best; }, all[0]);
+}
+function findPitfallFrom(cellNum) {
+  for (const team of ['A', 'B']) {
+    const f = state.items[team].pitfalls.find(function(p) { return p.from === cellNum; });
+    if (f) return Object.assign({ team: team }, f);
+  }
+  return null;
+}
+function getTreasureTeamAt(cellNum) {
+  if (state.revealed.treasures.has(cellNum)) return null;
+  for (const team of ['A', 'B']) {
+    if (state.items[team].treasures.includes(cellNum)) return team;
+  }
+  return null;
+}
 
-    function renderRevealedItems() {
-      const svg = document.getElementById('arrowSvg');
-      svg.querySelectorAll('.arrow-line').forEach(a => a.remove());
+function renderRevealedItems() {
+  const svg = document.getElementById('arrowSvg');
+  svg.querySelectorAll('.arrow-line').forEach(function(a) { a.remove(); });
 
-      state.revealed.snakes.forEach(fromCell => {
-        const snakes = getAllSnakesFrom(fromCell);
-        snakes.forEach(s => drawCuteSnake(fromCell, s.to, s.team));
-      });
-      state.revealed.pitfalls.forEach(fromCell => {
-        const item = findPitfallFrom(fromCell);
-        if (item) drawCutePitfall(fromCell, item.to, item.team);
-      });
-    }
+  state.revealed.snakes.forEach(function(fromCell) {
+    const snakes = getAllSnakesFrom(fromCell);
+    snakes.forEach(function(s) { drawCuteSnake(fromCell, s.to, s.team); });
+  });
+  state.revealed.pitfalls.forEach(function(fromCell) {
+    const item = findPitfallFrom(fromCell);
+    if (item) drawCutePitfall(fromCell, item.to, item.team);
+  });
+}
 
-    function drawCuteSnake(fromCell, toCell, team) {
-      const colors = TEAM_COLORS[team];
-      const fromEdge = getEdgePoint(fromCell, toCell, 0.32);
-      const toEdge = getEdgePoint(toCell, fromCell, 0.32);
-      const svg = document.getElementById('arrowSvg');
-      const SVG_NS = 'http://www.w3.org/2000/svg';
-      const dx = toEdge.x - fromEdge.x;
-      const dy = toEdge.y - fromEdge.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      const perpX = -dy / dist;
-      const perpY = dx / dist;
-      const wave = Math.min(dist * 0.35, 50);
-      const ctrl1X = fromEdge.x + dx * 0.3 + perpX * wave;
-      const ctrl1Y = fromEdge.y + dy * 0.3 + perpY * wave;
-      const ctrl2X = fromEdge.x + dx * 0.7 - perpX * wave;
-      const ctrl2Y = fromEdge.y + dy * 0.7 - perpY * wave;
-      const pathD = `M ${fromEdge.x} ${fromEdge.y} C ${ctrl1X} ${ctrl1Y}, ${ctrl2X} ${ctrl2Y}, ${toEdge.x} ${toEdge.y}`;
+function drawCuteSnake(fromCell, toCell, team) {
+  const colors = TEAM_COLORS[team];
+  const fromEdge = getEdgePoint(fromCell, toCell, 0.32);
+  const toEdge = getEdgePoint(toCell, fromCell, 0.32);
+  const svg = document.getElementById('arrowSvg');
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const dx = toEdge.x - fromEdge.x;
+  const dy = toEdge.y - fromEdge.y;
+  const dist = Math.sqrt(dx*dx + dy*dy);
+  const perpX = -dy / dist;
+  const perpY = dx / dist;
+  const wave = Math.min(dist * 0.35, 50);
+  const ctrl1X = fromEdge.x + dx * 0.3 + perpX * wave;
+  const ctrl1Y = fromEdge.y + dy * 0.3 + perpY * wave;
+  const ctrl2X = fromEdge.x + dx * 0.7 - perpX * wave;
+  const ctrl2Y = fromEdge.y + dy * 0.7 - perpY * wave;
+  const pathD = 'M ' + fromEdge.x + ' ' + fromEdge.y +
+    ' C ' + ctrl1X + ' ' + ctrl1Y + ', ' + ctrl2X + ' ' + ctrl2Y +
+    ', ' + toEdge.x + ' ' + toEdge.y;
 
-      [
-        { color: colors.snakeOuter, width: 22 },
-        { color: colors.snakeMain, width: 16 },
-        { color: colors.snakeInner, width: 7, opacity: 0.7 }
-      ].forEach(({ color, width, opacity }) => {
-        const p = document.createElementNS(SVG_NS, 'path');
-        p.classList.add('arrow-line', 'snake-body');
-        p.setAttribute('d', pathD);
-        p.setAttribute('stroke', color);
-        p.setAttribute('stroke-width', width);
-        p.setAttribute('stroke-linecap', 'round');
-        p.setAttribute('fill', 'none');
-        if (opacity) p.setAttribute('opacity', opacity);
-        svg.appendChild(p);
-      });
+  [
+    { color: colors.snakeOuter, width: 22 },
+    { color: colors.snakeMain, width: 16 },
+    { color: colors.snakeInner, width: 7, opacity: 0.7 }
+  ].forEach(function(item) {
+    const p = document.createElementNS(SVG_NS, 'path');
+    p.classList.add('arrow-line', 'snake-body');
+    p.setAttribute('d', pathD);
+    p.setAttribute('stroke', item.color);
+    p.setAttribute('stroke-width', item.width);
+    p.setAttribute('stroke-linecap', 'round');
+    p.setAttribute('fill', 'none');
+    if (item.opacity) p.setAttribute('opacity', item.opacity);
+    svg.appendChild(p);
+  });
 
-      const head = document.createElementNS(SVG_NS, 'circle');
-      head.classList.add('arrow-line', 'snake-head');
-      head.setAttribute('cx', toEdge.x); head.setAttribute('cy', toEdge.y);
-      head.setAttribute('r', '20');
-      head.setAttribute('fill', `url(#${colors.snakeHeadGrad})`);
-      head.setAttribute('stroke', colors.snakeOuter); head.setAttribute('stroke-width', '2');
-      svg.appendChild(head);
+  const head = document.createElementNS(SVG_NS, 'circle');
+  head.classList.add('arrow-line', 'snake-head');
+  head.setAttribute('cx', toEdge.x); head.setAttribute('cy', toEdge.y);
+  head.setAttribute('r', '20');
+  head.setAttribute('fill', 'url(#' + colors.snakeHeadGrad + ')');
+  head.setAttribute('stroke', colors.snakeOuter); head.setAttribute('stroke-width', '2');
+  svg.appendChild(head);
 
-      const tail = document.createElementNS(SVG_NS, 'circle');
-      tail.classList.add('arrow-line');
-      tail.setAttribute('cx', fromEdge.x); tail.setAttribute('cy', fromEdge.y);
-      tail.setAttribute('r', '10'); tail.setAttribute('fill', colors.snakeOuter);
-      svg.appendChild(tail);
+  const tail = document.createElementNS(SVG_NS, 'circle');
+  tail.classList.add('arrow-line');
+  tail.setAttribute('cx', fromEdge.x); tail.setAttribute('cy', fromEdge.y);
+  tail.setAttribute('r', '10'); tail.setAttribute('fill', colors.snakeOuter);
+  svg.appendChild(tail);
 
-      [[-7, -6], [7, -6]].forEach(([ox, oy]) => {
-        const eye = document.createElementNS(SVG_NS, 'circle');
-        eye.classList.add('arrow-line');
-        eye.setAttribute('cx', toEdge.x + ox); eye.setAttribute('cy', toEdge.y + oy);
-        eye.setAttribute('r', '4'); eye.setAttribute('fill', 'white');
-        svg.appendChild(eye);
-        const pup = document.createElementNS(SVG_NS, 'circle');
-        pup.classList.add('arrow-line');
-        pup.setAttribute('cx', toEdge.x + ox + 1); pup.setAttribute('cy', toEdge.y + oy + 1);
-        pup.setAttribute('r', '2'); pup.setAttribute('fill', '#000');
-        svg.appendChild(pup);
-      });
+  [[-7, -6], [7, -6]].forEach(function(arr) {
+    const ox = arr[0], oy = arr[1];
+    const eye = document.createElementNS(SVG_NS, 'circle');
+    eye.classList.add('arrow-line');
+    eye.setAttribute('cx', toEdge.x + ox); eye.setAttribute('cy', toEdge.y + oy);
+    eye.setAttribute('r', '4'); eye.setAttribute('fill', 'white');
+    svg.appendChild(eye);
+    const pup = document.createElementNS(SVG_NS, 'circle');
+    pup.classList.add('arrow-line');
+    pup.setAttribute('cx', toEdge.x + ox + 1); pup.setAttribute('cy', toEdge.y + oy + 1);
+    pup.setAttribute('r', '2'); pup.setAttribute('fill', '#000');
+    svg.appendChild(pup);
+  });
 
-      const tongue = document.createElementNS(SVG_NS, 'path');
-      tongue.classList.add('arrow-line', 'snake-tongue');
-      tongue.setAttribute('d',
-        `M ${toEdge.x} ${toEdge.y + 8} L ${toEdge.x} ${toEdge.y + 16}
-         M ${toEdge.x} ${toEdge.y + 16} L ${toEdge.x - 4} ${toEdge.y + 20}
-         M ${toEdge.x} ${toEdge.y + 16} L ${toEdge.x + 4} ${toEdge.y + 20}`);
-      tongue.setAttribute('stroke', '#ff4d8d');
-      tongue.setAttribute('stroke-width', '2');
-      tongue.setAttribute('stroke-linecap', 'round');
-      tongue.setAttribute('fill', 'none');
-      svg.appendChild(tongue);
-    }
+  const tongue = document.createElementNS(SVG_NS, 'path');
+  tongue.classList.add('arrow-line', 'snake-tongue');
+  const tongueD = 'M ' + toEdge.x + ' ' + (toEdge.y + 8) +
+    ' L ' + toEdge.x + ' ' + (toEdge.y + 16) +
+    ' M ' + toEdge.x + ' ' + (toEdge.y + 16) +
+    ' L ' + (toEdge.x - 4) + ' ' + (toEdge.y + 20) +
+    ' M ' + toEdge.x + ' ' + (toEdge.y + 16) +
+    ' L ' + (toEdge.x + 4) + ' ' + (toEdge.y + 20);
+  tongue.setAttribute('d', tongueD);
+  tongue.setAttribute('stroke', '#ff4d8d');
+  tongue.setAttribute('stroke-width', '2');
+  tongue.setAttribute('stroke-linecap', 'round');
+  tongue.setAttribute('fill', 'none');
+  svg.appendChild(tongue);
+}
 
-    function drawCutePitfall(fromCell, toCell, team) {
-      const colors = TEAM_COLORS[team];
-      const fromEdge = getEdgePoint(fromCell, toCell, 0.30);
-      const toEdge = getEdgePoint(toCell, fromCell, 0.30);
-      const svg = document.getElementById('arrowSvg');
-      const SVG_NS = 'http://www.w3.org/2000/svg';
+function drawCutePitfall(fromCell, toCell, team) {
+  const colors = TEAM_COLORS[team];
+  const fromEdge = getEdgePoint(fromCell, toCell, 0.30);
+  const toEdge = getEdgePoint(toCell, fromCell, 0.30);
+  const svg = document.getElementById('arrowSvg');
+  const SVG_NS = 'http://www.w3.org/2000/svg';
 
-      [fromEdge, toEdge].forEach(p => {
-        const rim = document.createElementNS(SVG_NS, 'ellipse');
-        rim.classList.add('arrow-line', 'pit-hole');
-        rim.setAttribute('cx', p.x); rim.setAttribute('cy', p.y);
-        rim.setAttribute('rx', '34'); rim.setAttribute('ry', '13');
-        rim.setAttribute('fill', colors.pitRimDark);
-        rim.setAttribute('stroke', colors.pitRim);
-        rim.setAttribute('stroke-width', '3');
-        svg.appendChild(rim);
+  [fromEdge, toEdge].forEach(function(p) {
+    const rim = document.createElementNS(SVG_NS, 'ellipse');
+    rim.classList.add('arrow-line', 'pit-hole');
+    rim.setAttribute('cx', p.x); rim.setAttribute('cy', p.y);
+    rim.setAttribute('rx', '34'); rim.setAttribute('ry', '13');
+    rim.setAttribute('fill', colors.pitRimDark);
+    rim.setAttribute('stroke', colors.pitRim);
+    rim.setAttribute('stroke-width', '3');
+    svg.appendChild(rim);
 
-        const hole = document.createElementNS(SVG_NS, 'ellipse');
-        hole.classList.add('arrow-line', 'pit-hole');
-        hole.setAttribute('cx', p.x); hole.setAttribute('cy', p.y);
-        hole.setAttribute('rx', '26'); hole.setAttribute('ry', '9');
-        hole.setAttribute('fill', 'url(#pitGrad)');
-        svg.appendChild(hole);
+    const hole = document.createElementNS(SVG_NS, 'ellipse');
+    hole.classList.add('arrow-line', 'pit-hole');
+    hole.setAttribute('cx', p.x); hole.setAttribute('cy', p.y);
+    hole.setAttribute('rx', '26'); hole.setAttribute('ry', '9');
+    hole.setAttribute('fill', 'url(#pitGrad)');
+    svg.appendChild(hole);
 
-        const deep = document.createElementNS(SVG_NS, 'ellipse');
-        deep.classList.add('arrow-line');
-        deep.setAttribute('cx', p.x); deep.setAttribute('cy', p.y);
-        deep.setAttribute('rx', '17'); deep.setAttribute('ry', '5');
-        deep.setAttribute('fill', '#000');
-        svg.appendChild(deep);
-      });
+    const deep = document.createElementNS(SVG_NS, 'ellipse');
+    deep.classList.add('arrow-line');
+    deep.setAttribute('cx', p.x); deep.setAttribute('cy', p.y);
+    deep.setAttribute('rx', '17'); deep.setAttribute('ry', '5');
+    deep.setAttribute('fill', '#000');
+    svg.appendChild(deep);
+  });
 
-      const fallLine = document.createElementNS(SVG_NS, 'line');
-      fallLine.classList.add('arrow-line', 'fall-trajectory');
-      fallLine.setAttribute('x1', fromEdge.x); fallLine.setAttribute('y1', fromEdge.y + 10);
-      fallLine.setAttribute('x2', toEdge.x); fallLine.setAttribute('y2', toEdge.y - 10);
-      fallLine.setAttribute('stroke', colors.fallLine);
-      fallLine.setAttribute('stroke-width', '4');
-      fallLine.setAttribute('stroke-dasharray', '8,7');
-      fallLine.setAttribute('stroke-linecap', 'round');
-      svg.appendChild(fallLine);
-    }
+  const fallLine = document.createElementNS(SVG_NS, 'line');
+  fallLine.classList.add('arrow-line', 'fall-trajectory');
+  fallLine.setAttribute('x1', fromEdge.x); fallLine.setAttribute('y1', fromEdge.y + 10);
+  fallLine.setAttribute('x2', toEdge.x); fallLine.setAttribute('y2', toEdge.y - 10);
+  fallLine.setAttribute('stroke', colors.fallLine);
+  fallLine.setAttribute('stroke-width', '4');
+  fallLine.setAttribute('stroke-dasharray', '8,7');
+  fallLine.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(fallLine);
+}
 
-    function miniSnakeSVG(team) {
+function miniSnakeSVG(team) {
   const c = TEAM_COLORS[team];
   return '<svg viewBox="0 0 60 60">' +
     '<path d="M 8 38 Q 18 18, 30 30 T 52 22" stroke="' + c.snakeOuter + '" stroke-width="9" fill="none" stroke-linecap="round"/>' +
@@ -946,91 +952,95 @@ function renderLegends() {
       '</div>';
   });
 }
-    function updateTreasureBadge(team, animate = false) {
-      const badge = document.getElementById(`treasureBadge${team}`);
-      if (!badge) return;
-      const count = state[`team${team}`].treasures;
-      badge.textContent = count;
-      badge.classList.toggle('zero', count === 0);
-      if (animate) {
-        badge.classList.remove('pop');
-        void badge.offsetWidth;  // restart animation
-        badge.classList.add('pop');
-      }
-    }
 
-    function showFloatingPoints(team, points) {
-      const wrapper = document.querySelector(`#team${team}Legend .treasure-wrapper`);
-      if (!wrapper) return;
-      const float = document.createElement('div');
-      float.className = 'floating-points';
-      float.textContent = `+${points}`;
-      wrapper.appendChild(float);
-      setTimeout(() => float.remove(), 2000);
-    }
+function updateTreasureBadge(team, animate) {
+  if (animate === undefined) animate = false;
+  const badge = document.getElementById('treasureBadge' + team);
+  if (!badge) return;
+  const count = state['team' + team].treasures;
+  badge.textContent = count;
+  badge.classList.toggle('zero', count === 0);
+  if (animate) {
+    badge.classList.remove('pop');
+    void badge.offsetWidth;
+    badge.classList.add('pop');
+  }
+}
 
-    function renderTeamNames() {
-      document.getElementById('teamAName').innerHTML = `🔵 ${escapeHTML(state.teamA.name)}`;
-      document.getElementById('teamBName').innerHTML = `🔴 ${escapeHTML(state.teamB.name)}`;
-      const ind = document.getElementById('turnIndicator');
-      if (state.currentTurn === 'A') {
-        ind.innerHTML = `🔵 ${escapeHTML(state.teamA.name)}`;
-        ind.className = 'turn-indicator-a';
-      } else {
-        ind.innerHTML = `🔴 ${escapeHTML(state.teamB.name)}`;
-        ind.className = 'turn-indicator-b';
-      }
-    }
+function showFloatingPoints(team, points) {
+  const wrapper = document.querySelector('#team' + team + 'Legend .treasure-wrapper');
+  if (!wrapper) return;
+  const float = document.createElement('div');
+  float.className = 'floating-points';
+  float.textContent = '+' + points;
+  wrapper.appendChild(float);
+  setTimeout(function() { float.remove(); }, 2000);
+}
 
-    function escapeHTML(s) {
-      return String(s).replace(/[&<>"']/g, c => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-      }[c]));
-    }
+function renderTeamNames() {
+  document.getElementById('teamAName').innerHTML = '\u{1F535} ' + escapeHTML(state.teamA.name);
+  document.getElementById('teamBName').innerHTML = '\u{1F534} ' + escapeHTML(state.teamB.name);
+  const ind = document.getElementById('turnIndicator');
+  if (state.currentTurn === 'A') {
+    ind.innerHTML = '\u{1F535} ' + escapeHTML(state.teamA.name);
+    ind.className = 'turn-indicator-a';
+  } else {
+    ind.innerHTML = '\u{1F534} ' + escapeHTML(state.teamB.name);
+    ind.className = 'turn-indicator-b';
+  }
+}
 
-    function updateScores() {
-      const aPieces = state.teamA.pieces.reduce((s, p) => s + p, 0);
-      const bPieces = state.teamB.pieces.reduce((s, p) => s + p, 0);
-      const aTotal = aPieces + (state.teamA.treasures * 25);
-      const bTotal = bPieces + (state.teamB.treasures * 25);
-      const aText = state.teamA.pieces.map((p, i) => `${PIECE_NUMS[i]}${p}`).join(' ');
-      const bText = state.teamB.pieces.map((p, i) => `${PIECE_NUMS[i]}${p}`).join(' ');
-      document.getElementById('teamAPieces').textContent = aText;
-      document.getElementById('teamBPieces').textContent = bText;
-      document.getElementById('teamAPieceScore').textContent = aPieces;
-      document.getElementById('teamBPieceScore').textContent = bPieces;
-      document.getElementById('teamATotal').textContent = aTotal;
-      document.getElementById('teamBTotal').textContent = bTotal;
-    }
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, function(c) {
+    const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+    return map[c];
+  });
+}
 
-    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function updateScores() {
+  const aPieces = state.teamA.pieces.reduce(function(s, p) { return s + p; }, 0);
+  const bPieces = state.teamB.pieces.reduce(function(s, p) { return s + p; }, 0);
+  const aTotal = aPieces + (state.teamA.treasures * 25);
+  const bTotal = bPieces + (state.teamB.treasures * 25);
+  const aText = state.teamA.pieces.map(function(p, i) { return PIECE_NUMS[i] + p; }).join(' ');
+  const bText = state.teamB.pieces.map(function(p, i) { return PIECE_NUMS[i] + p; }).join(' ');
+  document.getElementById('teamAPieces').textContent = aText;
+  document.getElementById('teamBPieces').textContent = bText;
+  document.getElementById('teamAPieceScore').textContent = aPieces;
+  document.getElementById('teamBPieceScore').textContent = bPieces;
+  document.getElementById('teamATotal').textContent = aTotal;
+  document.getElementById('teamBTotal').textContent = bTotal;
+}
 
-    async function showBanner(text, type, duration = 1500) {
-      const banner = document.getElementById('bigBanner');
-      banner.textContent = text;
-      banner.className = type;
-      banner.classList.add('show');
-      await sleep(duration);
-      banner.classList.remove('show');
-      await sleep(200);
-    }
+function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
 
-    async function showDice(value) {
-      const diceEl = document.getElementById('diceDisplay');
-      const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄'];
-      diceEl.textContent = diceFaces[value - 1] || '🎲';
-      playSound('sndDice', 0.7);
-      diceEl.classList.add('show');
-      await sleep(1100);
-      diceEl.classList.remove('show');
-      await sleep(250);
-    }
+async function showBanner(text, type, duration) {
+  if (duration === undefined) duration = 1500;
+  const banner = document.getElementById('bigBanner');
+  banner.textContent = text;
+  banner.className = type;
+  banner.classList.add('show');
+  await sleep(duration);
+  banner.classList.remove('show');
+  await sleep(200);
+}
 
-    async function diceWalk(team, pieceIdx, steps) {
-  let currentPos = state[`team${team}`].pieces[pieceIdx];
+async function showDice(value) {
+  const diceEl = document.getElementById('diceDisplay');
+  const diceFaces = ['\u2680', '\u2681', '\u2682', '\u2683', '\u2684'];
+  diceEl.textContent = diceFaces[value - 1] || '\u{1F3B2}';
+  playSound('sndDice', 0.7);
+  diceEl.classList.add('show');
+  await sleep(1100);
+  diceEl.classList.remove('show');
+  await sleep(250);
+}
+
+async function diceWalk(team, pieceIdx, steps) {
+  let currentPos = state['team' + team].pieces[pieceIdx];
   for (let i = 0; i < steps; i++) {
     currentPos = Math.min(currentPos + 1, 25);
-    state[`team${team}`].pieces[pieceIdx] = currentPos;
+    state['team' + team].pieces[pieceIdx] = currentPos;
     renderPieces();
     playSound('sndFootsteps', 0.4);
     const cell = cellElements[currentPos];
@@ -1039,241 +1049,237 @@ function renderLegends() {
     cell.classList.remove('highlight');
     if (currentPos === 25) break;
   }
-  stopSound('sndFootsteps'); // ← NEW: cut footsteps when done walking
+  stopSound('sndFootsteps');
   return currentPos;
 }
 
-    async function triggerChain(team, pieceIdx, landedCell) {
-      const entryCell = landedCell;
-      const visitedCells = new Set([landedCell]);
-      let currentCell = landedCell;
-      let chainCount = 0;
-      const maxChain = 12;
-      const teamName = state[`team${team}`].name;
+async function triggerChain(team, pieceIdx, landedCell) {
+  const entryCell = landedCell;
+  const visitedCells = new Set([landedCell]);
+  let currentCell = landedCell;
+  let chainCount = 0;
+  const maxChain = 12;
+  const teamName = state['team' + team].name;
 
-      while (chainCount < maxChain) {
-        chainCount++;
+  while (chainCount < maxChain) {
+    chainCount++;
 
-        const treasureTeam = getTreasureTeamAt(currentCell);
-        if (treasureTeam) {
-          state.revealed.treasures.add(currentCell);
-          state[`team${team}`].treasures++;
-          const cell = cellElements[currentCell];
-          cell.classList.add(`treasure-reveal-${treasureTeam.toLowerCase()}`);
-          playSound('sndTreasure');
-          showFloatingPoints(team, 25);
-          updateTreasureBadge(team, true);
-          await showBanner(`💎 TREASURE! ${teamName} +25 pts`, `treasure-${treasureTeam.toLowerCase()}`, 1700);
-          cell.classList.remove(`treasure-reveal-${treasureTeam.toLowerCase()}`);
-          renderRevealedItems();
-          updateScores();
-        }
-
-        const snake = findBestSnakeFrom(currentCell);
-        const pitfall = findPitfallFrom(currentCell);
-
-        if (snake && pitfall) {
-          state.revealed.snakes.add(currentCell);
-          state.revealed.pitfalls.add(currentCell);
-          const cell = cellElements[currentCell];
-          cell.classList.add('conflict-reveal');
-          playSound('sndConflict');
-          await showBanner(`⚖️ NEUTRALIZED at ${currentCell}!`, 'conflict', 2000);
-          cell.classList.remove('conflict-reveal');
-          renderRevealedItems();
-          return;
-        }
-
-        if (snake) {
-          state.revealed.snakes.add(currentCell);
-          playSound('sndSnake');
-          await showBanner(`🐍 SNAKE! ${currentCell} ↑ ${snake.to}`, `snake-${snake.team.toLowerCase()}`, 1400);
-          renderRevealedItems();
-          state[`team${team}`].pieces[pieceIdx] = snake.to;
-          renderPieces();
-          cellElements[snake.to].classList.add('highlight');
-          await sleep(500);
-          cellElements[snake.to].classList.remove('highlight');
-          currentCell = snake.to;
-
-          if (visitedCells.has(currentCell)) {
-            playSound('sndLoop');
-            await showBanner(`🔄 LOOP! Back to cell ${entryCell}`, 'loop', 2200);
-            state[`team${team}`].pieces[pieceIdx] = entryCell;
-            renderPieces();
-            cellElements[entryCell].classList.add('highlight');
-            await sleep(500);
-            cellElements[entryCell].classList.remove('highlight');
-            return;
-          }
-          visitedCells.add(currentCell);
-          continue;
-        }
-
-        if (pitfall) {
-          state.revealed.pitfalls.add(currentCell);
-          playSound('sndPitfall');
-          await showBanner(`🕳️ PITFALL! ${currentCell} ↓ ${pitfall.to}`, `pitfall-${pitfall.team.toLowerCase()}`, 1400);
-          renderRevealedItems();
-          state[`team${team}`].pieces[pieceIdx] = pitfall.to;
-          renderPieces();
-          cellElements[pitfall.to].classList.add('highlight');
-          await sleep(500);
-          cellElements[pitfall.to].classList.remove('highlight');
-          currentCell = pitfall.to;
-
-          if (visitedCells.has(currentCell)) {
-            playSound('sndLoop');
-            await showBanner(`🔄 LOOP! Back to cell ${entryCell}`, 'loop', 2200);
-            state[`team${team}`].pieces[pieceIdx] = entryCell;
-            renderPieces();
-            cellElements[entryCell].classList.add('highlight');
-            await sleep(500);
-            cellElements[entryCell].classList.remove('highlight');
-            return;
-          }
-          visitedCells.add(currentCell);
-          continue;
-        }
-
-        break;
-      }
-
-      if (currentCell === 25) {
-        playSound('sndGoal');
-        await showBanner(`🏁 ${pieceEmoji(team, pieceIdx)} reached the GOAL!`, 'goal', 1500);
-      }
+    const treasureTeam = getTreasureTeamAt(currentCell);
+    if (treasureTeam) {
+      state.revealed.treasures.add(currentCell);
+      state['team' + team].treasures++;
+      const cell = cellElements[currentCell];
+      cell.classList.add('treasure-reveal-' + treasureTeam.toLowerCase());
+      playSound('sndTreasure');
+      showFloatingPoints(team, 25);
+      updateTreasureBadge(team, true);
+      await showBanner('\u{1F48E} TREASURE! ' + teamName + ' +25 pts', 'treasure-' + treasureTeam.toLowerCase(), 1700);
+      cell.classList.remove('treasure-reveal-' + treasureTeam.toLowerCase());
+      renderRevealedItems();
+      updateScores();
     }
 
-    function checkAllPiecesAtGoal(team) {
-      return state[`team${team}`].pieces.every(p => p === 25);
+    const snake = findBestSnakeFrom(currentCell);
+    const pitfall = findPitfallFrom(currentCell);
+
+    if (snake && pitfall) {
+      state.revealed.snakes.add(currentCell);
+      state.revealed.pitfalls.add(currentCell);
+      const cell = cellElements[currentCell];
+      cell.classList.add('conflict-reveal');
+      playSound('sndConflict');
+      await showBanner('\u2696\uFE0F NEUTRALIZED at ' + currentCell + '!', 'conflict', 2000);
+      cell.classList.remove('conflict-reveal');
+      renderRevealedItems();
+      return;
     }
 
-    function updateTurn() {
-      const aPanel = document.getElementById('teamAPanel');
-      const bPanel = document.getElementById('teamBPanel');
-      if (state.currentTurn === 'A') {
-        if (!state.gameLocked) { aPanel.classList.add('active'); bPanel.classList.remove('active'); }
-      } else {
-        if (!state.gameLocked) { bPanel.classList.add('active'); aPanel.classList.remove('active'); }
+    if (snake) {
+      state.revealed.snakes.add(currentCell);
+      playSound('sndSnake');
+      await showBanner('\u{1F40D} SNAKE! ' + currentCell + ' \u2191 ' + snake.to, 'snake-' + snake.team.toLowerCase(), 1400);
+      renderRevealedItems();
+      state['team' + team].pieces[pieceIdx] = snake.to;
+      renderPieces();
+      cellElements[snake.to].classList.add('highlight');
+      await sleep(500);
+      cellElements[snake.to].classList.remove('highlight');
+      currentCell = snake.to;
+
+      if (visitedCells.has(currentCell)) {
+        playSound('sndLoop');
+        await showBanner('\u{1F504} LOOP! Back to cell ' + entryCell, 'loop', 2200);
+        state['team' + team].pieces[pieceIdx] = entryCell;
+        renderPieces();
+        cellElements[entryCell].classList.add('highlight');
+        await sleep(500);
+        cellElements[entryCell].classList.remove('highlight');
+        return;
       }
+      visitedCells.add(currentCell);
+      continue;
+    }
+
+    if (pitfall) {
+      state.revealed.pitfalls.add(currentCell);
+      playSound('sndPitfall');
+      await showBanner('\u{1F573}\uFE0F PITFALL! ' + currentCell + ' \u2193 ' + pitfall.to, 'pitfall-' + pitfall.team.toLowerCase(), 1400);
+      renderRevealedItems();
+      state['team' + team].pieces[pieceIdx] = pitfall.to;
+      renderPieces();
+      cellElements[pitfall.to].classList.add('highlight');
+      await sleep(500);
+      cellElements[pitfall.to].classList.remove('highlight');
+      currentCell = pitfall.to;
+
+      if (visitedCells.has(currentCell)) {
+        playSound('sndLoop');
+        await showBanner('\u{1F504} LOOP! Back to cell ' + entryCell, 'loop', 2200);
+        state['team' + team].pieces[pieceIdx] = entryCell;
+        renderPieces();
+        cellElements[entryCell].classList.add('highlight');
+        await sleep(500);
+        cellElements[entryCell].classList.remove('highlight');
+        return;
+      }
+      visitedCells.add(currentCell);
+      continue;
+    }
+
+    break;
+  }
+
+  if (currentCell === 25) {
+    playSound('sndGoal');
+    await showBanner('\u{1F3C1} ' + pieceEmoji(team, pieceIdx) + ' reached the GOAL!', 'goal', 1500);
+  }
+}
+
+function checkAllPiecesAtGoal(team) {
+  return state['team' + team].pieces.every(function(p) { return p === 25; });
+}
+
+function updateTurn() {
+  const aPanel = document.getElementById('teamAPanel');
+  const bPanel = document.getElementById('teamBPanel');
+  if (state.currentTurn === 'A') {
+    if (!state.gameLocked) { aPanel.classList.add('active'); bPanel.classList.remove('active'); }
+  } else {
+    if (!state.gameLocked) { bPanel.classList.add('active'); aPanel.classList.remove('active'); }
+  }
+  renderTeamNames();
+}
+
+function updatePhase() {
+  const welcome = document.getElementById('welcomeSplash');
+  const boardWrap = document.getElementById('boardWrapper');
+  const score = document.getElementById('scorePanel');
+  if (state.phase === 'setup') {
+    welcome.classList.remove('hidden');
+    boardWrap.classList.add('hidden');
+    score.classList.add('hidden');
+    document.body.classList.remove('playing');
+    document.getElementById('gameOverSplash').classList.remove('show');
+  } else {
+    welcome.classList.add('hidden');
+    boardWrap.classList.remove('hidden');
+    score.classList.remove('hidden');
+    document.body.classList.add('playing');
+  }
+  updateGameStatusBadge();
+}
+
+renderLegends();
+renderTeamNames();
+renderPieces();
+updateTreasureBadge('A');
+updateTreasureBadge('B');
+updateTurn();
+updatePhase();
+
+const ROOM_ID = 'snake-pitfall-2026-display';
+const statusEl = document.getElementById('status');
+const peer = new Peer(ROOM_ID, { debug: 2 });
+peer.on('open', function() { statusEl.textContent = '\u2705 Ready'; });
+peer.on('connection', function(conn) {
+  statusEl.textContent = '\u{1F7E2} GM Connected';
+  statusEl.className = 'connected';
+  conn.on('data', async function(msg) {
+    console.log('Received:', msg);
+    await handleAction(msg);
+  });
+  conn.on('close', function() {
+    statusEl.textContent = '\u26A0\uFE0F GM disconnected';
+    statusEl.className = 'waiting';
+  });
+});
+peer.on('error', function(err) { statusEl.textContent = '\u274C ' + err.type; });
+
+async function handleAction(msg) {
+  switch (msg.type) {
+    case 'movePiece':
+      if (state.gameLocked) return;
+      await showDice(msg.dice);
+      const landedCell = await diceWalk(msg.team, msg.pieceIdx, msg.dice);
+      await sleep(200);
+      await triggerChain(msg.team, msg.pieceIdx, landedCell);
+      if (checkAllPiecesAtGoal(msg.team)) {
+        await showBanner('\u{1F3C6} ' + state['team' + msg.team].name + ' got all 4 pieces to GOAL!', 'winner', 3000);
+      }
+      break;
+    case 'switchTurn':
+      if (state.gameLocked) return;
+      state.currentTurn = state.currentTurn === 'A' ? 'B' : 'A';
+      updateTurn();
+      break;
+    case 'reset':
+      state.teamA = { pieces: [1, 1, 1, 1], treasures: 0, name: state.teamA.name };
+      state.teamB = { pieces: [1, 1, 1, 1], treasures: 0, name: state.teamB.name };
+      state.currentTurn = 'A';
+      state.phase = 'setup';
+      state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
+      state.gameLocked = false;
+      document.getElementById('board').classList.remove('locked');
+      document.getElementById('teamAPanel').classList.remove('winner');
+      document.getElementById('teamBPanel').classList.remove('winner');
+      renderPieces();
+      renderRevealedItems();
+      updateTreasureBadge('A');
+      updateTreasureBadge('B');
+      updateTurn();
+      updatePhase();
+      stopBgMusic();
+      break;
+    case 'startGame':
+      state.phase = 'playing';
+      if (msg.items) state.items = msg.items;
+      if (msg.teamAName) state.teamA.name = msg.teamAName;
+      if (msg.teamBName) state.teamB.name = msg.teamBName;
+      state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
+      state.gameLocked = false;
+      document.getElementById('board').classList.remove('locked');
+      document.getElementById('teamAPanel').classList.remove('winner');
+      document.getElementById('teamBPanel').classList.remove('winner');
+      updateTreasureBadge('A');
+      updateTreasureBadge('B');
+      renderRevealedItems();
       renderTeamNames();
-    }
-
-    function updatePhase() {
-      const welcome = document.getElementById('welcomeSplash');
-      const boardWrap = document.getElementById('boardWrapper');
-      const score = document.getElementById('scorePanel');
-      if (state.phase === 'setup') {
-        welcome.classList.remove('hidden');
-        boardWrap.classList.add('hidden');
-        score.classList.add('hidden');
-        document.body.classList.remove('playing');
-        // Hide game-over splash if going back to setup
-        document.getElementById('gameOverSplash').classList.remove('show');
-      } else {
-        welcome.classList.add('hidden');
-        boardWrap.classList.remove('hidden');
-        score.classList.remove('hidden');
-        document.body.classList.add('playing');
-      }
-      updateGameStatusBadge();
-    }
-
-    renderLegends();
-    renderTeamNames();
-    renderPieces();
-    updateTreasureBadge('A');
-    updateTreasureBadge('B');
-    updateTurn();
-    updatePhase();
-
-    const ROOM_ID = 'snake-pitfall-2026-display';
-    const statusEl = document.getElementById('status');
-    const peer = new Peer(ROOM_ID, { debug: 2 });
-    peer.on('open', () => { statusEl.textContent = '✅ Ready'; });
-    peer.on('connection', (conn) => {
-      statusEl.textContent = '🟢 GM Connected';
-      statusEl.className = 'connected';
-      conn.on('data', async (msg) => {
-        console.log('Received:', msg);
-        await handleAction(msg);
-      });
-      conn.on('close', () => {
-        statusEl.textContent = '⚠️ GM disconnected';
-        statusEl.className = 'waiting';
-      });
-    });
-    peer.on('error', (err) => { statusEl.textContent = '❌ ' + err.type; });
-
-    async function handleAction(msg) {
-      switch (msg.type) {
-        case 'movePiece':
-          if (state.gameLocked) return;
-          await showDice(msg.dice);
-          const landedCell = await diceWalk(msg.team, msg.pieceIdx, msg.dice);
-          await sleep(200);
-          await triggerChain(msg.team, msg.pieceIdx, landedCell);
-          if (checkAllPiecesAtGoal(msg.team)) {
-            await showBanner(`🏆 ${state[`team${msg.team}`].name} got all 4 pieces to GOAL!`, 'winner', 3000);
-          }
-          break;
-        case 'switchTurn':
-          if (state.gameLocked) return;
-          state.currentTurn = state.currentTurn === 'A' ? 'B' : 'A';
-          updateTurn();
-          break;
-        case 'reset':
-          state.teamA = { pieces: [1, 1, 1, 1], treasures: 0, name: state.teamA.name };
-          state.teamB = { pieces: [1, 1, 1, 1], treasures: 0, name: state.teamB.name };
-          state.currentTurn = 'A';
-          state.phase = 'setup';
-          state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
-          state.gameLocked = false;
-          document.getElementById('board').classList.remove('locked');
-          document.getElementById('teamAPanel').classList.remove('winner');
-          document.getElementById('teamBPanel').classList.remove('winner');
-          renderPieces();
-          renderRevealedItems();
-          updateTreasureBadge('A');
-          updateTreasureBadge('B');
-          updateTurn();
-          updatePhase();
-          stopBgMusic();
-          break;
-        case 'startGame':
-          state.phase = 'playing';
-          if (msg.items) state.items = msg.items;
-          if (msg.teamAName) state.teamA.name = msg.teamAName;
-          if (msg.teamBName) state.teamB.name = msg.teamBName;
-          state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
-          state.gameLocked = false;
-          document.getElementById('board').classList.remove('locked');
-          document.getElementById('teamAPanel').classList.remove('winner');
-          document.getElementById('teamBPanel').classList.remove('winner');
-          updateTreasureBadge('A');
-          updateTreasureBadge('B');
-          renderRevealedItems();
-          renderTeamNames();
-          updatePhase();
-          playBgMusic(); 
-          break;
-        case 'setupMode':
-          state.phase = 'setup';
-          updatePhase();
-          stopBgMusic();
-          break;
-        case 'updateNames':
-          if (msg.teamAName !== undefined) state.teamA.name = msg.teamAName;
-          if (msg.teamBName !== undefined) state.teamB.name = msg.teamBName;
-          renderTeamNames();
-          break;
-        case 'endGameNow':
-          if (!state.gameLocked) await lockGame();
-          stopBgMusic();
-          break;
-      }
-    }
-  </script>
-</body>
-</html>
+      updatePhase();
+      playBgMusic();
+      break;
+    case 'setupMode':
+      state.phase = 'setup';
+      updatePhase();
+      stopBgMusic();
+      break;
+    case 'updateNames':
+      if (msg.teamAName !== undefined) state.teamA.name = msg.teamAName;
+      if (msg.teamBName !== undefined) state.teamB.name = msg.teamBName;
+      renderTeamNames();
+      break;
+    case 'endGameNow':
+      if (!state.gameLocked) await lockGame();
+      stopBgMusic();
+      break;
+  }
+}
