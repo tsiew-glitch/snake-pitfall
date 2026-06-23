@@ -541,6 +541,7 @@
   <audio id="sndGameover" src="sounds/gameover.mp3" preload="auto"></audio>
   <audio id="sndWinner" src="sounds/winner.mp3" preload="auto"></audio>
   <audio id="sndFootsteps" src="sounds/footsteps.mp3" preload="auto"></audio>
+  <audio id="sndBgMusic" src="sounds/background.mp3" loop preload="auto"></audio>
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
@@ -557,17 +558,44 @@
         if (p && p.catch) p.catch(() => {}); // ignore autoplay blocks
       } catch (e) {}
     }
+    function playBgMusic() {
+  if (isMuted) return;
+  const el = document.getElementById('sndBgMusic');
+  if (!el) return;
+  el.volume = 0.25; // softer than SFX so it doesn't drown them out
+  const p = el.play();
+  if (p && p.catch) p.catch(() => {}); // ignore autoplay blocks
+}
+
+function stopBgMusic() {
+  const el = document.getElementById('sndBgMusic');
+  if (!el) return;
+  try {
+    el.pause();
+    el.currentTime = 0;
+  } catch (e) {}
+}
+
+function pauseBgMusic() {
+  const el = document.getElementById('sndBgMusic');
+  if (!el) return;
+  try { el.pause(); } catch (e) {}
+}
+`
     function toggleMute() {
-      isMuted = !isMuted;
-      const btn = document.getElementById('muteBtn');
-      if (isMuted) {
-        btn.textContent = '🔇';
-        btn.classList.add('muted');
-      } else {
-        btn.textContent = '🔊';
-        btn.classList.remove('muted');
-      }
-    }
+  isMuted = !isMuted;
+  const btn = document.getElementById('muteBtn');
+  const music = document.getElementById('sndBgMusic');
+  if (isMuted) {
+    btn.textContent = '🔇';
+    btn.classList.add('muted');
+    if (music) music.muted = true;
+  } else {
+    btn.textContent = '🔊';
+    btn.classList.remove('muted');
+    if (music) music.muted = false;
+  }
+}
     // Unlock audio on first user interaction (browsers require this)
     document.body.addEventListener('click', () => {
       ['sndDice','sndSnake','sndPitfall','sndTreasure','sndConflict','sndLoop','sndGoal','sndGameover','sndWinner','sndFootsteps'].forEach(id => {
@@ -1205,6 +1233,7 @@
           updateTreasureBadge('B');
           updateTurn();
           updatePhase();
+          stopBgMusic();
           break;
         case 'startGame':
           state.phase = 'playing';
@@ -1221,10 +1250,12 @@
           renderRevealedItems();
           renderTeamNames();
           updatePhase();
+          playBgMusic(); 
           break;
         case 'setupMode':
           state.phase = 'setup';
           updatePhase();
+          stopBgMusic();
           break;
         case 'updateNames':
           if (msg.teamAName !== undefined) state.teamA.name = msg.teamAName;
@@ -1233,6 +1264,7 @@
           break;
         case 'endGameNow':
           if (!state.gameLocked) await lockGame();
+          stopBgMusic();
           break;
       }
     }
