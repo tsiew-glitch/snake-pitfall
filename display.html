@@ -16,6 +16,22 @@
       flex-direction: column;
       align-items: center;
       padding: 20px;
+      position: relative;
+    }
+    /* Subtle background poster during play */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: url('poster.png') center/cover no-repeat;
+      opacity: 0;
+      filter: blur(8px) brightness(0.4);
+      z-index: -1;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+    }
+    body.playing::before {
+      opacity: 0.25;
     }
     h1 {
       font-size: 2.3em;
@@ -35,6 +51,25 @@
     .waiting { background: #ff9800; }
     .connected { background: #4caf50; }
 
+    /* Mute button */
+    #muteBtn {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.5);
+      border: 2px solid rgba(255,255,255,0.4);
+      color: white;
+      font-size: 1.5em;
+      cursor: pointer;
+      z-index: 300;
+      transition: all 0.2s;
+    }
+    #muteBtn:hover { background: rgba(0,0,0,0.8); transform: scale(1.08); }
+    #muteBtn.muted { opacity: 0.6; }
+
     #gameStatusBadge {
       font-size: 1.3em; font-weight: bold;
       padding: 8px 18px; border-radius: 10px;
@@ -42,17 +77,38 @@
     #gameStatusBadge.hidden { display: none; }
     #gameStatusBadge.game-over { background: rgba(212, 175, 55, 0.5); border: 2px solid #d4af37; }
 
-    #phaseBanner {
-      font-size: 2em;
-      padding: 30px 60px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
+    /* === Welcome / Setup Splash with Poster === */
+    #welcomeSplash {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 25px;
+      margin: 20px 0;
       text-align: center;
-      margin: 40px 0;
-      animation: pulse 2s infinite;
     }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-    #phaseBanner.hidden { display: none; }
+    #welcomeSplash.hidden { display: none; }
+    #posterImg {
+      max-width: min(80vh, 90vw);
+      max-height: 75vh;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      animation: posterFloat 4s ease-in-out infinite;
+    }
+    @keyframes posterFloat {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-10px) scale(1.01); }
+    }
+    .setup-overlay-text {
+      font-size: 1.8em;
+      padding: 18px 36px;
+      background: rgba(0, 0, 0, 0.75);
+      border-radius: 16px;
+      border: 2px solid rgba(212, 175, 55, 0.6);
+      animation: pulse 2s infinite;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
 
     #boardWrapper {
       position: relative;
@@ -141,32 +197,17 @@
     }
 
     .snake-body { animation: snakeWiggle 2s infinite ease-in-out; }
-    @keyframes snakeWiggle {
-      0%, 100% { opacity: 0.85; }
-      50% { opacity: 1; }
-    }
+    @keyframes snakeWiggle { 0%, 100% { opacity: 0.85; } 50% { opacity: 1; } }
     .snake-head { animation: headBob 1.5s infinite ease-in-out; transform-origin: center; transform-box: fill-box; }
-    @keyframes headBob {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.08); }
-    }
+    @keyframes headBob { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
     .snake-tongue { animation: tongueFlick 0.8s infinite; }
-    @keyframes tongueFlick {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
+    @keyframes tongueFlick { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
     .pit-hole { animation: pitPulse 2s infinite ease-in-out; }
-    @keyframes pitPulse {
-      0%, 100% { opacity: 0.95; }
-      50% { opacity: 0.7; }
-    }
+    @keyframes pitPulse { 0%, 100% { opacity: 0.95; } 50% { opacity: 0.7; } }
     .fall-trajectory { animation: fallShimmer 1.5s infinite; }
-    @keyframes fallShimmer {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
+    @keyframes fallShimmer { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
 
-    /* === Merged Team Scorecards === */
+    /* === Scorecards === */
     #scorePanel {
       display: flex;
       gap: 30px;
@@ -178,6 +219,7 @@
       padding: 14px 20px;
       border-radius: 14px;
       background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
       min-width: 320px;
       text-align: center;
       transition: all 0.3s;
@@ -211,12 +253,11 @@
     .breakdown { font-size: 0.85em; opacity: 0.9; margin-bottom: 6px; }
     .total { font-size: 1.7em; font-weight: bold; }
 
-    /* Legend row inside team card */
     .legend-row {
       display: flex;
       gap: 14px;
       justify-content: center;
-      align-items: center;
+      align-items: flex-end;
       margin-top: 10px;
       padding-top: 10px;
       border-top: 1px solid rgba(255,255,255,0.2);
@@ -226,6 +267,7 @@
       flex-direction: column;
       align-items: center;
       gap: 2px;
+      position: relative;
     }
     .legend-icon-wrapper svg {
       width: 38px;
@@ -235,8 +277,62 @@
       font-size: 0.7em;
       opacity: 0.85;
     }
+    /* Treasure count badge */
+    .treasure-wrapper {
+      position: relative;
+    }
+    .treasure-count-badge {
+      position: absolute;
+      top: -8px;
+      right: -10px;
+      min-width: 28px;
+      height: 28px;
+      padding: 0 6px;
+      background: #e74c3c;
+      color: white;
+      border: 2px solid white;
+      border-radius: 14px;
+      font-weight: bold;
+      font-size: 1.05em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      z-index: 5;
+      transition: transform 0.3s;
+    }
+    .treasure-count-badge.zero { background: #666; border-color: rgba(255,255,255,0.4); opacity: 0.7; }
+    .treasure-count-badge.pop {
+      animation: badgePop 0.6s ease;
+    }
+    @keyframes badgePop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.6); background: #ffd700; color: #1a1f3a; }
+      100% { transform: scale(1); }
+    }
 
-    /* Top header colors */
+    /* Floating +25 animation */
+    .floating-points {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #ffd700;
+      font-size: 1.4em;
+      font-weight: bold;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+      pointer-events: none;
+      opacity: 0;
+      animation: floatUp 1.8s ease forwards;
+      z-index: 100;
+    }
+    @keyframes floatUp {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(0.7); }
+      20% { opacity: 1; transform: translate(-50%, -10px) scale(1.2); }
+      80% { opacity: 1; transform: translate(-50%, -50px) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -70px) scale(0.8); }
+    }
+
     .turn-indicator-a { color: #4a90e2; text-shadow: 0 0 6px rgba(74,144,226,0.5); font-weight: bold; }
     .turn-indicator-b { color: #e74c3c; text-shadow: 0 0 6px rgba(231,76,60,0.5); font-weight: bold; }
 
@@ -266,7 +362,11 @@
     #bigBanner.conflict { background: #8e44ad; color: white; }
     #bigBanner.goal { background: #f39c12; color: white; }
     #bigBanner.gameover { background: #d4af37; color: #1a1f3a; font-size: 3.5em; }
-    #bigBanner.winner { background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%); color: #1a1f3a; font-size: 3.2em; }
+    #bigBanner.winner {
+      background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+      color: #1a1f3a;
+      font-size: 3.2em;
+    }
 
     #diceDisplay {
       position: fixed;
@@ -285,9 +385,39 @@
       z-index: 100;
     }
     #diceDisplay.show { transform: translate(-50%, -50%) scale(1); }
+
+    /* Game Over splash */
+    #gameOverSplash {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 250;
+      gap: 30px;
+    }
+    #gameOverSplash.show { display: flex; }
+    #gameOverSplash img {
+      max-height: 50vh;
+      border-radius: 16px;
+      box-shadow: 0 0 60px rgba(255,215,0,0.4);
+    }
+    #gameOverSplash .winner-text {
+      font-size: 3em;
+      font-weight: bold;
+      background: linear-gradient(135deg, #ffd700, #ff8c00);
+      color: #1a1f3a;
+      padding: 20px 50px;
+      border-radius: 16px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
+  <button id="muteBtn" onclick="toggleMute()" title="Mute / Unmute">🔊</button>
+
   <h1>🎲 Snake & Pitfall</h1>
   <div id="topBar">
     <div>Turn: <span id="turnIndicator" class="turn-indicator-a">🔵 Team A</span></div>
@@ -295,7 +425,11 @@
     <div id="status" class="waiting">⏳ Waiting for GM...</div>
   </div>
 
-  <div id="phaseBanner" class="hidden">🤫 Teams are setting up the board...</div>
+  <!-- Welcome / Setup splash with poster -->
+  <div id="welcomeSplash">
+    <img id="posterImg" src="poster.png" alt="Snake and Pitfall" onerror="this.style.display='none'">
+    <div class="setup-overlay-text">🤫 Teams are setting up the board...</div>
+  </div>
 
   <div id="boardWrapper" class="hidden">
     <div id="board"></div>
@@ -322,14 +456,14 @@
     <div class="team-card team-a active" id="teamAPanel">
       <div class="team-name" id="teamAName">🔵 Team A</div>
       <div class="piece-positions" id="teamAPieces">①1 ②1 ③1 ④1</div>
-      <div class="breakdown">💎 <span id="teamATreasures">0</span> · Pieces sum: <span id="teamAPieceScore">4</span></div>
+      <div class="breakdown">Pieces sum: <span id="teamAPieceScore">4</span></div>
       <div class="total">TOTAL: <span id="teamATotal">4</span></div>
       <div class="legend-row" id="teamALegend"></div>
     </div>
     <div class="team-card team-b" id="teamBPanel">
       <div class="team-name" id="teamBName">🔴 Team B</div>
       <div class="piece-positions" id="teamBPieces">①1 ②1 ③1 ④1</div>
-      <div class="breakdown">💎 <span id="teamBTreasures">0</span> · Pieces sum: <span id="teamBPieceScore">4</span></div>
+      <div class="breakdown">Pieces sum: <span id="teamBPieceScore">4</span></div>
       <div class="total">TOTAL: <span id="teamBTotal">4</span></div>
       <div class="legend-row" id="teamBLegend"></div>
     </div>
@@ -338,8 +472,57 @@
   <div id="diceDisplay">🎲</div>
   <div id="bigBanner"></div>
 
+  <div id="gameOverSplash">
+    <img src="poster.png" alt="" onerror="this.style.display='none'">
+    <div class="winner-text" id="gameOverWinner">🏆 GAME OVER!</div>
+  </div>
+
+  <!-- Audio elements -->
+  <audio id="sndDice" src="sounds/dice.mp3" preload="auto"></audio>
+  <audio id="sndSnake" src="sounds/snake.mp3" preload="auto"></audio>
+  <audio id="sndPitfall" src="sounds/pitfall.mp3" preload="auto"></audio>
+  <audio id="sndTreasure" src="sounds/treasure.mp3" preload="auto"></audio>
+  <audio id="sndConflict" src="sounds/conflict.mp3" preload="auto"></audio>
+  <audio id="sndLoop" src="sounds/loop.mp3" preload="auto"></audio>
+  <audio id="sndGoal" src="sounds/goal.mp3" preload="auto"></audio>
+  <audio id="sndGameover" src="sounds/gameover.mp3" preload="auto"></audio>
+  <audio id="sndWinner" src="sounds/winner.mp3" preload="auto"></audio>
+  <audio id="sndFootsteps" src="sounds/footsteps.mp3" preload="auto"></audio>
+
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
+    // ===== Audio system =====
+    let isMuted = false;
+    function playSound(id, volume = 0.8) {
+      if (isMuted) return;
+      const el = document.getElementById(id);
+      if (!el) return;
+      try {
+        el.currentTime = 0;
+        el.volume = volume;
+        const p = el.play();
+        if (p && p.catch) p.catch(() => {}); // ignore autoplay blocks
+      } catch (e) {}
+    }
+    function toggleMute() {
+      isMuted = !isMuted;
+      const btn = document.getElementById('muteBtn');
+      if (isMuted) {
+        btn.textContent = '🔇';
+        btn.classList.add('muted');
+      } else {
+        btn.textContent = '🔊';
+        btn.classList.remove('muted');
+      }
+    }
+    // Unlock audio on first user interaction (browsers require this)
+    document.body.addEventListener('click', () => {
+      ['sndDice','sndSnake','sndPitfall','sndTreasure','sndConflict','sndLoop','sndGoal','sndGameover','sndWinner','sndFootsteps'].forEach(id => {
+        const a = document.getElementById(id);
+        if (a) { a.volume = 0; a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {}); }
+      });
+    }, { once: true });
+
     const TEAM_COLORS = {
       A: {
         snakeOuter: '#1e7d3f', snakeMain: '#27ae60', snakeInner: '#52d685',
@@ -379,6 +562,7 @@
       state.gameLocked = true;
       updateGameStatusBadge();
       document.getElementById('board').classList.add('locked');
+      playSound('sndGameover');
       await showBanner("🏆 GAME OVER!", 'gameover', 2500);
       declareWinner();
     }
@@ -394,7 +578,13 @@
       if (aTotal > bTotal) { aPanel.classList.add('winner'); winText = `🏆 ${state.teamA.name} WINS! ${aTotal} vs ${bTotal}`; }
       else if (bTotal > aTotal) { bPanel.classList.add('winner'); winText = `🏆 ${state.teamB.name} WINS! ${bTotal} vs ${aTotal}`; }
       else { winText = `🤝 DRAW! ${aTotal} – ${bTotal}`; aPanel.classList.add('winner'); bPanel.classList.add('winner'); }
-      setTimeout(() => showBanner(winText, 'winner', 4000), 200);
+      setTimeout(() => {
+        playSound('sndWinner');
+        showBanner(winText, 'winner', 4000);
+        // Game over splash
+        document.getElementById('gameOverWinner').textContent = winText;
+        document.getElementById('gameOverSplash').classList.add('show');
+      }, 200);
     }
 
     function updateGameStatusBadge() {
@@ -420,10 +610,7 @@
     function getCellCenter(cellNum) {
       const { visualRow, visualCol } = getCellCoords(cellNum);
       const cellSize = 1000 / 5;
-      return {
-        x: visualCol * cellSize + cellSize / 2,
-        y: visualRow * cellSize + cellSize / 2
-      };
+      return { x: visualCol * cellSize + cellSize / 2, y: visualRow * cellSize + cellSize / 2 };
     }
     function getEdgePoint(fromCell, toCell, edgeBias = 0.35) {
       const from = getCellCenter(fromCell);
@@ -494,8 +681,7 @@
 
     function renderRevealedItems() {
       const svg = document.getElementById('arrowSvg');
-      const oldDrawings = svg.querySelectorAll('.arrow-line');
-      oldDrawings.forEach(a => a.remove());
+      svg.querySelectorAll('.arrow-line').forEach(a => a.remove());
 
       state.revealed.snakes.forEach(fromCell => {
         const snakes = getAllSnakesFrom(fromCell);
@@ -513,7 +699,6 @@
       const toEdge = getEdgePoint(toCell, fromCell, 0.32);
       const svg = document.getElementById('arrowSvg');
       const SVG_NS = 'http://www.w3.org/2000/svg';
-
       const dx = toEdge.x - fromEdge.x;
       const dy = toEdge.y - fromEdge.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
@@ -625,7 +810,6 @@
       svg.appendChild(fallLine);
     }
 
-    // === Mini-icon SVGs for legend ===
     function miniSnakeSVG(team) {
       const c = TEAM_COLORS[team];
       return `
@@ -666,17 +850,41 @@
         el.innerHTML = `
           <div class="legend-icon-wrapper">${miniSnakeSVG(team)}<div class="legend-label">Snake</div></div>
           <div class="legend-icon-wrapper">${miniPitfallSVG(team)}<div class="legend-label">Pitfall</div></div>
-          <div class="legend-icon-wrapper">${miniTreasureSVG(team)}<div class="legend-label">Treasure</div></div>
+          <div class="legend-icon-wrapper treasure-wrapper">
+            ${miniTreasureSVG(team)}
+            <div class="treasure-count-badge zero" id="treasureBadge${team}">0</div>
+            <div class="legend-label">Treasure</div>
+          </div>
         `;
       });
     }
 
+    function updateTreasureBadge(team, animate = false) {
+      const badge = document.getElementById(`treasureBadge${team}`);
+      if (!badge) return;
+      const count = state[`team${team}`].treasures;
+      badge.textContent = count;
+      badge.classList.toggle('zero', count === 0);
+      if (animate) {
+        badge.classList.remove('pop');
+        void badge.offsetWidth;  // restart animation
+        badge.classList.add('pop');
+      }
+    }
+
+    function showFloatingPoints(team, points) {
+      const wrapper = document.querySelector(`#team${team}Legend .treasure-wrapper`);
+      if (!wrapper) return;
+      const float = document.createElement('div');
+      float.className = 'floating-points';
+      float.textContent = `+${points}`;
+      wrapper.appendChild(float);
+      setTimeout(() => float.remove(), 2000);
+    }
+
     function renderTeamNames() {
-      const aColor = '🔵';
-      const bColor = '🔴';
-      document.getElementById('teamAName').innerHTML = `${aColor} ${escapeHTML(state.teamA.name)}`;
-      document.getElementById('teamBName').innerHTML = `${bColor} ${escapeHTML(state.teamB.name)}`;
-      // Update turn indicator
+      document.getElementById('teamAName').innerHTML = `🔵 ${escapeHTML(state.teamA.name)}`;
+      document.getElementById('teamBName').innerHTML = `🔴 ${escapeHTML(state.teamB.name)}`;
       const ind = document.getElementById('turnIndicator');
       if (state.currentTurn === 'A') {
         ind.innerHTML = `🔵 ${escapeHTML(state.teamA.name)}`;
@@ -702,8 +910,6 @@
       const bText = state.teamB.pieces.map((p, i) => `${PIECE_NUMS[i]}${p}`).join(' ');
       document.getElementById('teamAPieces').textContent = aText;
       document.getElementById('teamBPieces').textContent = bText;
-      document.getElementById('teamATreasures').textContent = state.teamA.treasures;
-      document.getElementById('teamBTreasures').textContent = state.teamB.treasures;
       document.getElementById('teamAPieceScore').textContent = aPieces;
       document.getElementById('teamBPieceScore').textContent = bPieces;
       document.getElementById('teamATotal').textContent = aTotal;
@@ -726,6 +932,7 @@
       const diceEl = document.getElementById('diceDisplay');
       const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄'];
       diceEl.textContent = diceFaces[value - 1] || '🎲';
+      playSound('sndDice', 0.7);
       diceEl.classList.add('show');
       await sleep(1100);
       diceEl.classList.remove('show');
@@ -738,6 +945,7 @@
         currentPos = Math.min(currentPos + 1, 25);
         state[`team${team}`].pieces[pieceIdx] = currentPos;
         renderPieces();
+        playSound('sndFootsteps', 0.4);
         const cell = cellElements[currentPos];
         cell.classList.add('highlight');
         await sleep(300);
@@ -764,6 +972,9 @@
           state[`team${team}`].treasures++;
           const cell = cellElements[currentCell];
           cell.classList.add(`treasure-reveal-${treasureTeam.toLowerCase()}`);
+          playSound('sndTreasure');
+          showFloatingPoints(team, 25);
+          updateTreasureBadge(team, true);
           await showBanner(`💎 TREASURE! ${teamName} +25 pts`, `treasure-${treasureTeam.toLowerCase()}`, 1700);
           cell.classList.remove(`treasure-reveal-${treasureTeam.toLowerCase()}`);
           renderRevealedItems();
@@ -778,6 +989,7 @@
           state.revealed.pitfalls.add(currentCell);
           const cell = cellElements[currentCell];
           cell.classList.add('conflict-reveal');
+          playSound('sndConflict');
           await showBanner(`⚖️ NEUTRALIZED at ${currentCell}!`, 'conflict', 2000);
           cell.classList.remove('conflict-reveal');
           renderRevealedItems();
@@ -786,6 +998,7 @@
 
         if (snake) {
           state.revealed.snakes.add(currentCell);
+          playSound('sndSnake');
           await showBanner(`🐍 SNAKE! ${currentCell} ↑ ${snake.to}`, `snake-${snake.team.toLowerCase()}`, 1400);
           renderRevealedItems();
           state[`team${team}`].pieces[pieceIdx] = snake.to;
@@ -796,6 +1009,7 @@
           currentCell = snake.to;
 
           if (visitedCells.has(currentCell)) {
+            playSound('sndLoop');
             await showBanner(`🔄 LOOP! Back to cell ${entryCell}`, 'loop', 2200);
             state[`team${team}`].pieces[pieceIdx] = entryCell;
             renderPieces();
@@ -810,6 +1024,7 @@
 
         if (pitfall) {
           state.revealed.pitfalls.add(currentCell);
+          playSound('sndPitfall');
           await showBanner(`🕳️ PITFALL! ${currentCell} ↓ ${pitfall.to}`, `pitfall-${pitfall.team.toLowerCase()}`, 1400);
           renderRevealedItems();
           state[`team${team}`].pieces[pieceIdx] = pitfall.to;
@@ -820,6 +1035,7 @@
           currentCell = pitfall.to;
 
           if (visitedCells.has(currentCell)) {
+            playSound('sndLoop');
             await showBanner(`🔄 LOOP! Back to cell ${entryCell}`, 'loop', 2200);
             state[`team${team}`].pieces[pieceIdx] = entryCell;
             renderPieces();
@@ -836,6 +1052,7 @@
       }
 
       if (currentCell === 25) {
+        playSound('sndGoal');
         await showBanner(`🏁 ${pieceEmoji(team, pieceIdx)} reached the GOAL!`, 'goal', 1500);
       }
     }
@@ -856,17 +1073,21 @@
     }
 
     function updatePhase() {
-      const banner = document.getElementById('phaseBanner');
+      const welcome = document.getElementById('welcomeSplash');
       const boardWrap = document.getElementById('boardWrapper');
       const score = document.getElementById('scorePanel');
       if (state.phase === 'setup') {
-        banner.classList.remove('hidden');
+        welcome.classList.remove('hidden');
         boardWrap.classList.add('hidden');
         score.classList.add('hidden');
+        document.body.classList.remove('playing');
+        // Hide game-over splash if going back to setup
+        document.getElementById('gameOverSplash').classList.remove('show');
       } else {
-        banner.classList.add('hidden');
+        welcome.classList.add('hidden');
         boardWrap.classList.remove('hidden');
         score.classList.remove('hidden');
+        document.body.classList.add('playing');
       }
       updateGameStatusBadge();
     }
@@ -874,6 +1095,8 @@
     renderLegends();
     renderTeamNames();
     renderPieces();
+    updateTreasureBadge('A');
+    updateTreasureBadge('B');
     updateTurn();
     updatePhase();
 
@@ -913,17 +1136,9 @@
           updateTurn();
           break;
         case 'reset':
-          state.teamA = { pieces: [1, 1, 1, 1], treasures: 0, name: state.teamA.name };
-          state.teamB = { pieces: [1, 1, 1, 1], treasures: 0, name: state.teamB.name };
-          state.currentTurn = 'A';
-          state.phase = 'setup';
-          state.revealed = { snakes: new Set(), pitfalls: new Set(), treasures: new Set() };
-          state.gameLocked = false;
-          document.getElementById('board').classList.remove('locked');
-          document.getElementById('teamAPanel').classList.remove('winner');
-          document.getElementById('teamBPanel').classList.remove('winner');
-          renderPieces();
-          renderRevealedItems();
+          state.teamA = { pieces: [1, 1, 1, 1];
+          updateTreasureBadge('A');
+          updateTreasureBadge('B');
           updateTurn();
           updatePhase();
           break;
@@ -937,6 +1152,8 @@
           document.getElementById('board').classList.remove('locked');
           document.getElementById('teamAPanel').classList.remove('winner');
           document.getElementById('teamBPanel').classList.remove('winner');
+          updateTreasureBadge('A');
+          updateTreasureBadge('B');
           renderRevealedItems();
           renderTeamNames();
           updatePhase();
