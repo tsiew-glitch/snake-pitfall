@@ -1203,8 +1203,12 @@ updateTreasureBadge('B');
 updateTurn();
 updatePhase();
 
-const TODAY = new Date().toISOString().slice(0,10).replace(/-/g,''); // "20260624"
-const ROOM_ID = 'snakepit-tsiew-' + TODAY;  // "snakepit-tsiew-20260624"
+const d = new Date();
+const TODAY = d.getFullYear().toString()
+  + String(d.getMonth() + 1).padStart(2, '0')
+  + String(d.getDate()).padStart(2, '0');
+const ROOM_ID = 'snakepit-tsiew-' + TODAY;   // in display.html
+// const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;   // in gm.html
 const statusEl = document.getElementById('status');
 const peer = new Peer(ROOM_ID, {
   host: '0.peerjs.com',
