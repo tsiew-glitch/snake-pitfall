@@ -604,7 +604,7 @@ function pauseBgMusic() {
 }
     // Unlock audio on first user interaction (browsers require this)
     document.body.addEventListener('click', () => {
-      ['sndDice','sndSnake','sndPitfall','sndTreasure','sndConflict','sndLoop','sndGoal','sndGameover','sndWinner','sndFootsteps'].forEach(id => {
+      ['sndDice','sndSnake','sndPitfall','sndTreasure','sndConflict','sndLoop','sndGoal','sndGameover','sndWinner','sndFootsteps','sndBgMusic'].forEach(id => {
         const a = document.getElementById(id);
         if (a) { a.volume = 0; a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {}); }
       });
