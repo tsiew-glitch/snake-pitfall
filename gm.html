@@ -387,8 +387,11 @@
 
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script>
-    const TODAY = new Date().toISOString().slice(0,10).replace(/-/g,'');
-    const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;  // ⚠️ NOT ROOM_ID!
+    const d = new Date();
+const TODAY = d.getFullYear().toString()
+  + String(d.getMonth() + 1).padStart(2, '0')
+  + String(d.getDate()).padStart(2, '0');
+const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;
     let conn = null;
     let phase = 'setup';
     let currentTeam = 'A';
