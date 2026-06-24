@@ -1206,6 +1206,14 @@ const peer = new Peer(ROOM_ID, {
   secure: true,
   debug: 2
 });
+peer.on('open', (id) => {
+  console.log('✅ Display registered:', id);
+  document.title = '✅ ' + id;
+});
+peer.on('error', (err) => {
+  console.error('❌', err.type, err.message);
+  document.title = '❌ ' + err.type;
+});
 peer.on('open', function() { statusEl.textContent = '\u2705 Ready'; });
 peer.on('connection', function(conn) {
   statusEl.textContent = '\u{1F7E2} GM Connected';
