@@ -869,7 +869,13 @@
     }
 
     const statusEl = document.getElementById('status');
-    const peer = new Peer({ debug: 2 });
+    const peer = new Peer(null, {
+  host: '0.peerjs.com',
+  port: 443,
+  path: '/',
+  secure: true,
+  debug: 2
+});
 
     peer.on('open', () => {
       statusEl.textContent = '🔄 Connecting to Display...';
