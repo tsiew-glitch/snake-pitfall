@@ -1199,7 +1199,13 @@ updatePhase();
 
 const ROOM_ID = 'snakepit-tsiew-0624-alpha';
 const statusEl = document.getElementById('status');
-const peer = new Peer(ROOM_ID, { debug: 2 });
+const peer = new Peer(ROOM_ID, {
+  host: '0.peerjs.com',
+  port: 443,
+  path: '/',
+  secure: true,
+  debug: 2
+});
 peer.on('open', function() { statusEl.textContent = '\u2705 Ready'; });
 peer.on('connection', function(conn) {
   statusEl.textContent = '\u{1F7E2} GM Connected';
