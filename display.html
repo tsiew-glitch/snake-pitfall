@@ -1203,7 +1203,8 @@ updateTreasureBadge('B');
 updateTurn();
 updatePhase();
 
-const ROOM_ID = 'snakepit-tsiew-0624-alpha';
+const TODAY = new Date().toISOString().slice(0,10).replace(/-/g,''); // "20260624"
+const ROOM_ID = 'snakepit-tsiew-' + TODAY;  // "snakepit-tsiew-20260624"
 const statusEl = document.getElementById('status');
 const peer = new Peer(ROOM_ID, {
   host: '0.peerjs.com',
