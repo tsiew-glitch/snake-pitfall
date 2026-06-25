@@ -252,6 +252,54 @@
     @keyframes pitPulse { 0%, 100% { opacity: 0.95; } 50% { opacity: 0.7; } }
     .fall-trajectory { animation: fallShimmer 1.5s infinite; }
     @keyframes fallShimmer { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+    #gameLayout {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0 10px;
+}
+#gameLayout.hidden { display: none; }
+#gameLayout .team-card {
+  flex: 0 0 280px;
+  min-width: 260px;
+}
+#gameLayout #boardWrapper {
+  flex: 0 0 auto;
+  width: min(60vh, 55vw);
+}
+
+/* Mini piece tokens in the team card pieces summary */
+.mini-token {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4em;
+  height: 1.4em;
+  border-radius: 50%;
+  color: white;
+  font-weight: 900;
+  font-size: 0.78em;
+  border: 1.5px solid white;
+  vertical-align: middle;
+  margin-right: 2px;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.6);
+}
+.mini-token.team-a { background: #4a90e2; }
+.mini-token.team-b { background: #e74c3c; }
+
+/* New "Treasure collected" line */
+.treasure-collected {
+  font-size: 0.95em;
+  margin: 6px 0;
+  color: #ffd700;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
 
     /* === Scorecards === */
     #scorePanel {
@@ -266,7 +314,7 @@
       border-radius: 14px;
       background: rgba(255,255,255,0.08);
       backdrop-filter: blur(10px);
-      min-width: 320px;
+      min-width: 260px;
       text-align: center;
       transition: all 0.3s;
       border: 2px solid transparent;
@@ -496,7 +544,17 @@
     <div class="setup-overlay-text">🤫 Teams are setting up the board...</div>
   </div>
 
-  <div id="boardWrapper" class="hidden">
+  <div id="gameLayout" class="hidden">
+  <div class="team-card team-a active" id="teamAPanel">
+    <div class="team-name" id="teamAName">🔵 Team A</div>
+    <div class="piece-positions" id="teamAPieces">A1 B1 C1 D1</div>
+    <div class="breakdown">Pieces sum: <span id="teamAPieceScore">4</span></div>
+    <div class="treasure-collected">💎 Collected: <span id="teamATreasureCollected">0</span></div>
+    <div class="total">TOTAL: <span id="teamATotal">4</span></div>
+    <div class="legend-row" id="teamALegend"></div>
+  </div>
+
+  <div id="boardWrapper">
     <div id="board"></div>
     <svg id="arrowSvg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
       <defs>
@@ -517,22 +575,15 @@
     </svg>
   </div>
 
-  <div id="scorePanel" class="hidden">
-    <div class="team-card team-a active" id="teamAPanel">
-      <div class="team-name" id="teamAName">🔵 Team A</div>
-      <div class="piece-positions" id="teamAPieces">①1 ②1 ③1 ④1</div>
-      <div class="breakdown">Pieces sum: <span id="teamAPieceScore">4</span></div>
-      <div class="total">TOTAL: <span id="teamATotal">4</span></div>
-      <div class="legend-row" id="teamALegend"></div>
-    </div>
-    <div class="team-card team-b" id="teamBPanel">
-      <div class="team-name" id="teamBName">🔴 Team B</div>
-      <div class="piece-positions" id="teamBPieces">①1 ②1 ③1 ④1</div>
-      <div class="breakdown">Pieces sum: <span id="teamBPieceScore">4</span></div>
-      <div class="total">TOTAL: <span id="teamBTotal">4</span></div>
-      <div class="legend-row" id="teamBLegend"></div>
-    </div>
+  <div class="team-card team-b" id="teamBPanel">
+    <div class="team-name" id="teamBName">🔴 Team B</div>
+    <div class="piece-positions" id="teamBPieces">1:1 2:1 3:1 4:1</div>
+    <div class="breakdown">Pieces sum: <span id="teamBPieceScore">4</span></div>
+    <div class="treasure-collected">💎 Collected: <span id="teamBTreasureCollected">0</span></div>
+    <div class="total">TOTAL: <span id="teamBTotal">4</span></div>
+    <div class="legend-row" id="teamBLegend"></div>
   </div>
+</div>
 
   <div id="diceDisplay">🎲</div>
   <div id="bigBanner"></div>
@@ -803,12 +854,23 @@ function findPitfallFrom(cellNum) {
   }
   return null;
 }
-function getTreasureTeamAt(cellNum) {
-  if (state.revealed.treasures.has(cellNum)) return null;
+function getTreasureTeamsAt(cellNum) {
+  // Returns array of teams (e.g., ['A'], ['B'], or ['A','B'] if both placed treasure here)
+  if (state.revealed.treasures.has(cellNum)) return [];
+  const teams = [];
   for (const team of ['A', 'B']) {
-    if (state.items[team].treasures.includes(cellNum)) return team;
+    if (state.items[team].treasures.includes(cellNum)) teams.push(team);
   }
-  return null;
+  return teams;
+}
+
+// Returns count of OWN team's treasures that have been revealed (claimed by anyone)
+function getRevealedOwnTreasureCount(team) {
+  let count = 0;
+  state.items[team].treasures.forEach(function(cell) {
+    if (state.revealed.treasures.has(cell)) count++;
+  });
+  return count;
 }
 
 function renderRevealedItems() {
@@ -1006,7 +1068,7 @@ function updateTreasureBadge(team, animate) {
   if (animate === undefined) animate = false;
   const badge = document.getElementById('treasureBadge' + team);
   if (!badge) return;
-  const count = state['team' + team].treasures;
+  const count = getRevealedOwnTreasureCount(team);  // OWN revealed treasures
   badge.textContent = count;
   badge.classList.toggle('zero', count === 0);
   if (animate) {
@@ -1076,14 +1138,24 @@ function updateScores() {
   const bPieces = state.teamB.pieces.reduce(function(s, p) { return s + p; }, 0);
   const aTotal = aPieces + (state.teamA.treasures * 25);
   const bTotal = bPieces + (state.teamB.treasures * 25);
-  const aText = state.teamA.pieces.map(function(p, i) { return PIECE_NUMS[i] + p; }).join(' ');
-  const bText = state.teamB.pieces.map(function(p, i) { return PIECE_NUMS[i] + p; }).join(' ');
-  document.getElementById('teamAPieces').textContent = aText;
-  document.getElementById('teamBPieces').textContent = bText;
+  // Pieces summary with mini circle tokens
+  const aText = state.teamA.pieces.map(function(p, i) {
+    return '<span class="mini-token team-a">' + PIECE_LABELS.A[i] + '</span>' + p;
+  }).join(' ');
+  const bText = state.teamB.pieces.map(function(p, i) {
+    return '<span class="mini-token team-b">' + PIECE_LABELS.B[i] + '</span>' + p;
+  }).join(' ');
+  document.getElementById('teamAPieces').innerHTML = aText;
+  document.getElementById('teamBPieces').innerHTML = bText;
   document.getElementById('teamAPieceScore').textContent = aPieces;
   document.getElementById('teamBPieceScore').textContent = bPieces;
   document.getElementById('teamATotal').textContent = aTotal;
   document.getElementById('teamBTotal').textContent = bTotal;
+  // New: treasure collected per team (can include opponent's treasures)
+  const aColl = document.getElementById('teamATreasureCollected');
+  const bColl = document.getElementById('teamBTreasureCollected');
+  if (aColl) aColl.textContent = state.teamA.treasures;
+  if (bColl) bColl.textContent = state.teamB.treasures;
 }
 
 function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
@@ -1141,21 +1213,28 @@ async function triggerChain(team, pieceIdx, landedCell, conn) {
   while (chainCount < maxChain) {
     chainCount++;
 
-    const treasureTeam = getTreasureTeamAt(currentCell);
-    if (treasureTeam) {
+    const treasureTeams = getTreasureTeamsAt(currentCell);
+    if (treasureTeams.length > 0) {
       state.revealed.treasures.add(currentCell);
-      state['team' + team].treasures++;
+      const points = 25 * treasureTeams.length;
+      state['team' + team].treasures += treasureTeams.length;  // collector gets all
       const cell = cellElements[currentCell];
-      cell.classList.add('treasure-reveal-' + treasureTeam.toLowerCase());
+      // Use first owner's color for cell flash
+      cell.classList.add('treasure-reveal-' + treasureTeams[0].toLowerCase());
       playSound('sndTreasure');
-      showFloatingPoints(team, 25);
-      updateTreasureBadge(team, true);
-      pushLog('💎@' + currentCell);
-      await showBanner('💎 TREASURE! ' + teamName + ' +25 pts', 'treasure-' + treasureTeam.toLowerCase(), 1700);
-      cell.classList.remove('treasure-reveal-' + treasureTeam.toLowerCase());
+      showFloatingPoints(team, points);
+      // Update badge for EACH team whose treasure was revealed
+      treasureTeams.forEach(function(ownerTeam) {
+        updateTreasureBadge(ownerTeam, true);
+      });
+      const multi = treasureTeams.length > 1 ? '×' + treasureTeams.length + ' ' : '';
+      pushLog('💎' + (treasureTeams.length > 1 ? '×' + treasureTeams.length : '') + '@' + currentCell);
+      await showBanner('💎 ' + multi + 'TREASURE! ' + teamName + ' +' + points + ' pts', 'treasure-' + treasureTeams[0].toLowerCase(), 1700);
+      cell.classList.remove('treasure-reveal-' + treasureTeams[0].toLowerCase());
       renderRevealedItems();
       updateScores();
     }
+
 
     const snake = findBestSnakeFrom(currentCell);
     const pitfall = findPitfallFrom(currentCell);
@@ -1277,18 +1356,15 @@ function updateTurn() {
 
 function updatePhase() {
   const welcome = document.getElementById('welcomeSplash');
-  const boardWrap = document.getElementById('boardWrapper');
-  const score = document.getElementById('scorePanel');
+  const layout = document.getElementById('gameLayout');
   if (state.phase === 'setup') {
     welcome.classList.remove('hidden');
-    boardWrap.classList.add('hidden');
-    score.classList.add('hidden');
+    if (layout) layout.classList.add('hidden');
     document.body.classList.remove('playing');
     document.getElementById('gameOverSplash').classList.remove('show');
   } else {
     welcome.classList.add('hidden');
-    boardWrap.classList.remove('hidden');
-    score.classList.remove('hidden');
+    if (layout) layout.classList.remove('hidden');
     document.body.classList.add('playing');
   }
   updateGameStatusBadge();
