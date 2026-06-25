@@ -228,13 +228,63 @@
       cursor: pointer;
       text-align: left;
     }
-    .piece-btn .piece-id { font-size: 1.3em; margin-right: 6px; }
+    .piece-btn .piece-token {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9em;
+  height: 1.9em;
+  border-radius: 50%;
+  color: white;
+  font-weight: 900;
+  font-size: 1em;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 -2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.piece-btn .piece-token.team-a { background: #4a90e2; }
+.piece-btn .piece-token.team-b { background: #e74c3c; }
     .piece-btn.team-a-piece { border-color: #4a90e2; }
     .piece-btn.team-b-piece { border-color: #e74c3c; }
     .piece-btn.selected { background: #1abc9c; border-color: white; box-shadow: 0 0 15px rgba(26, 188, 156, 0.7); }
     .piece-btn.at-goal { background: #d4af37; color: #1a1f3a; opacity: 0.7; }
     .piece-btn.at-goal::after { content: ' 🏁'; }
-
+#movementLog {
+  font-size: 0.85em;
+  padding: 8px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  font-family: 'Courier New', monospace;
+}
+.log-entry {
+  padding: 4px 6px;
+  margin-bottom: 3px;
+  border-radius: 4px;
+  border-left: 3px solid #4a90e2;
+  background: rgba(74,144,226,0.1);
+}
+.log-entry.team-b { border-left-color: #e74c3c; background: rgba(231,76,60,0.1); }
+.log-entry.undone { opacity: 0.35; text-decoration: line-through; }
+.log-piece {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 50%;
+  color: white;
+  font-weight: 900;
+  font-size: 0.85em;
+  border: 1.5px solid white;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.log-piece.team-a { background: #4a90e2; }
+.log-piece.team-b { background: #e74c3c; }
     .dice-row {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -370,6 +420,12 @@
         ▶️ Move Selected Piece
       </button>
     </div>
+    
+<div class="panel">
+  <h2>📜 Movement Log</h2>
+  <div id="movementLog">No moves yet</div>
+  <button class="action-btn warning" id="undoMoveBtn" onclick="undoLastMove()" disabled>↩️ Undo Last Step</button>
+</div>
 
     <div class="panel">
       <h2>🔍 GM Cheat Sheet</h2>
@@ -407,8 +463,13 @@ const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;
 
     const teamNames = { A: 'Team A', B: 'Team B' };
 
-    const PIECE_NUMS = ['①', '②', '③', '④'];
-    const teamPieces = { A: [1, 1, 1, 1], B: [1, 1, 1, 1] };
+    const PIECE_NUMS = ['①', '②', '③', '④'];  // kept for backward compatibility (not used)
+const PIECE_LABELS = {
+  A: ['A', 'B', 'C', 'D'],
+  B: ['1', '2', '3', '4']
+};
+const teamPieces = { A: [1, 1, 1, 1], B: [1, 1, 1, 1] };
+const moveHistory = [];  // stack of past moves for undo: { team, pieceIdx, from, to, chainLog }
     let currentTurn = 'A';
     let selectedDice = null;
     let selectedPieceIdx = null;
@@ -693,6 +754,9 @@ const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;
     function startGame() {
       teamPieces.A = [1, 1, 1, 1];
       teamPieces.B = [1, 1, 1, 1];
+      moveHistory.length = 0;
+  const logEl = document.getElementById('movementLog');
+  if (logEl) logEl.innerHTML = 'No moves yet';
       currentTurn = 'A';
       selectedPieceIdx = null;
       selectedDice = null;
@@ -780,26 +844,76 @@ const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;
     }
 
     function renderPieceSelector() {
-      const container = document.getElementById('pieceSelector');
-      container.innerHTML = '';
-      const positions = teamPieces[currentTurn];
-      const color = currentTurn === 'A' ? '🔵' : '🔴';
-      const teamClass = currentTurn === 'A' ? 'team-a-piece' : 'team-b-piece';
-      positions.forEach((pos, idx) => {
-        const btn = document.createElement('button');
-        btn.className = `piece-btn ${teamClass}`;
-        if (selectedPieceIdx === idx) btn.classList.add('selected');
-        if (pos === 25) btn.classList.add('at-goal');
-        if (gameLocked) btn.disabled = true;
-        btn.innerHTML = `<span class="piece-id">${color}${PIECE_NUMS[idx]}</span> @ Cell ${pos}`;
-        btn.onclick = () => selectPiece(idx);
-        container.appendChild(btn);
-      });
-      document.getElementById('switchTurnBtn').disabled = gameLocked;
-      document.getElementById('endGameBtn').disabled = gameLocked;
-      updateMoveBtn();
-    }
+  const container = document.getElementById('pieceSelector');
+  container.innerHTML = '';
+  const positions = teamPieces[currentTurn];
+  const teamClass = currentTurn === 'A' ? 'team-a-piece' : 'team-b-piece';
+  const tokenClass = currentTurn === 'A' ? 'team-a' : 'team-b';
+  positions.forEach((pos, idx) => {
+    const btn = document.createElement('button');
+    btn.className = `piece-btn ${teamClass}`;
+    if (selectedPieceIdx === idx) btn.classList.add('selected');
+    if (pos === 25) btn.classList.add('at-goal');
+    if (gameLocked) btn.disabled = true;
+    btn.innerHTML =
+      '<span class="piece-token ' + tokenClass + '">' + PIECE_LABELS[currentTurn][idx] + '</span>' +
+      '@ Cell ' + pos;
+    btn.onclick = () => selectPiece(idx);
+    container.appendChild(btn);
+  });
+  document.getElementById('switchTurnBtn').disabled = gameLocked;
+  document.getElementById('endGameBtn').disabled = gameLocked;
+  updateMoveBtn();
+}
+    function addLogEntry(team, pieceIdx, fromCell, toCell, chainLog) {
+  const log = document.getElementById('movementLog');
+  if (log.textContent === 'No moves yet') log.innerHTML = '';
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + (team === 'A' ? 'team-a' : 'team-b');
+  entry.dataset.idx = moveHistory.length - 1;  // index in moveHistory
+  const tokenClass = team === 'A' ? 'team-a' : 'team-b';
+  const label = PIECE_LABELS[team][pieceIdx];
+  let chainStr = '';
+  if (chainLog && chainLog.length) chainStr = ' ' + chainLog.join(' ');
+  entry.innerHTML =
+    '<span class="log-piece ' + tokenClass + '">' + label + '</span>' +
+    fromCell + ' → ' + toCell + chainStr;
+  log.insertBefore(entry, log.firstChild);  // newest on top
+}
 
+function updateUndoBtn() {
+  const btn = document.getElementById('undoMoveBtn');
+  if (!btn) return;
+  btn.disabled = gameLocked || moveHistory.length === 0;
+}
+
+function undoLastMove() {
+  if (gameLocked) return;
+  if (moveHistory.length === 0) return;
+  const last = moveHistory.pop();
+  // Restore piece position
+  teamPieces[last.team][last.pieceIdx] = last.from;
+  // Tell display to also rewind
+  if (conn && conn.open) {
+    conn.send({
+      type: 'rewindPiece',
+      team: last.team,
+      pieceIdx: last.pieceIdx,
+      position: last.from
+    });
+  }
+  // Mark log entry as undone (strikethrough)
+  const log = document.getElementById('movementLog');
+  const entries = log.querySelectorAll('.log-entry');
+  entries.forEach(function(el) {
+    if (parseInt(el.dataset.idx) === moveHistory.length) {
+      el.classList.add('undone');
+    }
+  });
+  renderPieceSelector();
+  updateUndoBtn();
+  if (navigator.vibrate) navigator.vibrate(30);
+}
     function selectPiece(idx) {
       if (gameLocked) return;
       if (teamPieces[currentTurn][idx] === 25) return;
@@ -829,18 +943,21 @@ const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;
     }
 
     function sendMove() {
-      if (gameLocked) return;
-      if (selectedPieceIdx === null || !selectedDice || !conn || !conn.open) return;
-      teamPieces[currentTurn][selectedPieceIdx] = Math.min(
-        teamPieces[currentTurn][selectedPieceIdx] + selectedDice, 25
-      );
-      conn.send({ type: 'movePiece', team: currentTurn, pieceIdx: selectedPieceIdx, dice: selectedDice });
-      selectedDice = null;
-      selectedPieceIdx = null;
-      document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
-      renderPieceSelector();
-      if (navigator.vibrate) navigator.vibrate(50);
-    }
+  if (gameLocked) return;
+  if (selectedPieceIdx === null || !selectedDice || !conn || !conn.open) return;
+  // DO NOT update position locally — wait for display's authoritative "pieceResult"
+  conn.send({
+    type: 'movePiece',
+    team: currentTurn,
+    pieceIdx: selectedPieceIdx,
+    dice: selectedDice
+  });
+  selectedDice = null;
+  selectedPieceIdx = null;
+  document.querySelectorAll('.dice-btn').forEach(b => b.classList.remove('selected'));
+  renderPieceSelector();
+  if (navigator.vibrate) navigator.vibrate(50);
+}
 
     function switchTurn() {
       if (gameLocked) return;
@@ -859,6 +976,9 @@ const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;
       items.B = { snakes: [], pitfalls: [], treasures: [] };
       teamPieces.A = [1, 1, 1, 1];
       teamPieces.B = [1, 1, 1, 1];
+      moveHistory.length = 0;
+  const logEl = document.getElementById('movementLog');
+  if (logEl) logEl.innerHTML = 'No moves yet';
       currentTurn = 'A';
       selectedDice = null;
       selectedPieceIdx = null;
@@ -882,19 +1002,38 @@ const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;
 });
 
     peer.on('open', () => {
-      statusEl.textContent = '🔄 Connecting to Display...';
-      conn = peer.connect(DISPLAY_ID, { reliable: true });
-      conn.on('open', () => {
-        statusEl.textContent = '🟢 Connected';
-        statusEl.className = 'connected';
-        conn.send({ type: 'setupMode' });
-        conn.send({ type: 'updateNames', teamAName: teamNames.A, teamBName: teamNames.B });
+  statusEl.textContent = '🔄 Connecting to Display...';
+  conn = peer.connect(DISPLAY_ID, { reliable: true });
+  conn.on('open', () => {
+    statusEl.textContent = '🟢 Connected';
+    statusEl.className = 'connected';
+    conn.send({ type: 'setupMode' });
+    conn.send({ type: 'updateNames', teamAName: teamNames.A, teamBName: teamNames.B });
+  });
+  conn.on('data', (msg) => {
+    if (!msg || !msg.type) return;
+    if (msg.type === 'pieceResult') {
+      // Display tells us the authoritative final cell of the moved piece
+      const prevPos = teamPieces[msg.team][msg.pieceIdx];
+      teamPieces[msg.team][msg.pieceIdx] = msg.finalCell;
+      // Record move in history for undo
+      moveHistory.push({
+        team: msg.team,
+        pieceIdx: msg.pieceIdx,
+        from: prevPos,
+        to: msg.finalCell,
+        chainLog: msg.chainLog || []
       });
-      conn.on('close', () => {
-        statusEl.textContent = '⚠️ Disconnected — refresh';
-        statusEl.className = 'waiting';
-      });
-    });
+      addLogEntry(msg.team, msg.pieceIdx, prevPos, msg.finalCell, msg.chainLog);
+      renderPieceSelector();
+      updateUndoBtn();
+    }
+  });
+  conn.on('close', () => {
+    statusEl.textContent = '⚠️ Disconnected — refresh';
+    statusEl.className = 'waiting';
+  });
+});
 
     peer.on('error', (err) => {
       statusEl.textContent = '❌ ' + err.type + ' — open display first';
@@ -907,6 +1046,7 @@ const DISPLAY_ID = 'snakepit-tsiew-' + TODAY;
     updatePlacedList();
     selectTool('snake');
     updateGameStatusBanner();
+    updateUndoBtn();
   </script>
 </body>
 </html>
