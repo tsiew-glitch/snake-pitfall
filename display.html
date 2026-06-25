@@ -203,13 +203,25 @@
       position: relative;
     }
     .piece {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 1.6em;
-      line-height: 1;
-      filter: drop-shadow(0 0 3px rgba(0,0,0,0.9));
-    }
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.piece-token {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.8em;
+  height: 1.8em;
+  border-radius: 50%;
+  color: white;
+  font-weight: 900;
+  font-size: 0.95em;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6), inset 0 -2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+}
 
     .cell.highlight {
       background: linear-gradient(145deg, #f39c12, #d68910) !important;
@@ -640,10 +652,32 @@ function pauseBgMusic() {
       gameLocked: false
     };
 
-    const PIECE_NUMS = ['①', '②', '③', '④'];
-    function pieceEmoji(team, idx) {
-      return (team === 'A' ? '🔵' : '🔴') + PIECE_NUMS[idx];
+    // Track count of revealed snakes/pitfalls per team (by source cell, dedup)
+function getRevealedCountByTeam(itemType, team) {
+  let count = 0;
+  state.revealed[itemType].forEach(function(fromCell) {
+    if (itemType === 'snakes') {
+      const list = state.items[team].snakes.filter(function(s) { return s.from === fromCell; });
+      count += list.length;
+    } else {
+      const list = state.items[team].pitfalls.filter(function(p) { return p.from === fromCell; });
+      count += list.length;
     }
+  });
+  return count;
+}
+
+
+    const PIECE_NUMS = ['①', '②', '③', '④'];
+    const PIECE_LABELS = {
+  A: ['A', 'B', 'C', 'D'],
+  B: ['1', '2', '3', '4']
+};
+function pieceEmoji(team, idx) {
+  const color = team === 'A' ? '#4a90e2' : '#e74c3c';
+  const label = PIECE_LABELS[team][idx];
+  return '<span class="piece-token" style="background:' + color + '">' + label + '</span>';
+}
 
     async function lockGame() {
       state.gameLocked = true;
@@ -746,6 +780,7 @@ for (let r = 0; r < 5; r++) {
   });
   updateScores();
 }
+
 
     function getAllSnakesFrom(cellNum) {
   const snakes = [];
@@ -949,8 +984,16 @@ function renderLegends() {
   ['A', 'B'].forEach(function(team) {
     const el = document.getElementById('team' + team + 'Legend');
     el.innerHTML =
-      '<div class="legend-icon-wrapper">' + miniSnakeSVG(team) + '<div class="legend-label">Snake</div></div>' +
-      '<div class="legend-icon-wrapper">' + miniPitfallSVG(team) + '<div class="legend-label">Pitfall</div></div>' +
+      '<div class="legend-icon-wrapper treasure-wrapper">' +
+        miniSnakeSVG(team) +
+        '<div class="treasure-count-badge zero" id="snakeBadge' + team + '">0</div>' +
+        '<div class="legend-label">Snake</div>' +
+      '</div>' +
+      '<div class="legend-icon-wrapper treasure-wrapper">' +
+        miniPitfallSVG(team) +
+        '<div class="treasure-count-badge zero" id="pitfallBadge' + team + '">0</div>' +
+        '<div class="legend-label">Pitfall</div>' +
+      '</div>' +
       '<div class="legend-icon-wrapper treasure-wrapper">' +
         miniTreasureSVG(team) +
         '<div class="treasure-count-badge zero" id="treasureBadge' + team + '">0</div>' +
@@ -964,6 +1007,31 @@ function updateTreasureBadge(team, animate) {
   const badge = document.getElementById('treasureBadge' + team);
   if (!badge) return;
   const count = state['team' + team].treasures;
+  badge.textContent = count;
+  badge.classList.toggle('zero', count === 0);
+  if (animate) {
+    badge.classList.remove('pop');
+    void badge.offsetWidth;
+    badge.classList.add('pop');
+  }
+}
+    
+function updateSnakeBadge(team, animate) {
+  const badge = document.getElementById('snakeBadge' + team);
+  if (!badge) return;
+  const count = getRevealedCountByTeam('snakes', team);
+  badge.textContent = count;
+  badge.classList.toggle('zero', count === 0);
+  if (animate) {
+    badge.classList.remove('pop');
+    void badge.offsetWidth;
+    badge.classList.add('pop');
+  }
+}
+function updatePitfallBadge(team, animate) {
+  const badge = document.getElementById('pitfallBadge' + team);
+  if (!badge) return;
+  const count = getRevealedCountByTeam('pitfalls', team);
   badge.textContent = count;
   badge.classList.toggle('zero', count === 0);
   if (animate) {
@@ -1059,13 +1127,16 @@ async function diceWalk(team, pieceIdx, steps) {
   return currentPos;
 }
 
-async function triggerChain(team, pieceIdx, landedCell) {
+async function triggerChain(team, pieceIdx, landedCell, conn) {
   const entryCell = landedCell;
   const visitedCells = new Set([landedCell]);
   let currentCell = landedCell;
   let chainCount = 0;
   const maxChain = 12;
   const teamName = state['team' + team].name;
+  const logSteps = [];   // collect movement chain for log
+
+  function pushLog(text) { logSteps.push(text); }
 
   while (chainCount < maxChain) {
     chainCount++;
@@ -1079,7 +1150,8 @@ async function triggerChain(team, pieceIdx, landedCell) {
       playSound('sndTreasure');
       showFloatingPoints(team, 25);
       updateTreasureBadge(team, true);
-      await showBanner('\u{1F48E} TREASURE! ' + teamName + ' +25 pts', 'treasure-' + treasureTeam.toLowerCase(), 1700);
+      pushLog('💎@' + currentCell);
+      await showBanner('💎 TREASURE! ' + teamName + ' +25 pts', 'treasure-' + treasureTeam.toLowerCase(), 1700);
       cell.classList.remove('treasure-reveal-' + treasureTeam.toLowerCase());
       renderRevealedItems();
       updateScores();
@@ -1091,19 +1163,25 @@ async function triggerChain(team, pieceIdx, landedCell) {
     if (snake && pitfall) {
       state.revealed.snakes.add(currentCell);
       state.revealed.pitfalls.add(currentCell);
+      updateSnakeBadge(snake.team, true);
+      updatePitfallBadge(pitfall.team, true);
       const cell = cellElements[currentCell];
       cell.classList.add('conflict-reveal');
       playSound('sndConflict');
-      await showBanner('\u2696\uFE0F NEUTRALIZED at ' + currentCell + '!', 'conflict', 2000);
+      pushLog('⚖️@' + currentCell);
+      await showBanner('⚖️ NEUTRALIZED at ' + currentCell + '!', 'conflict', 2000);
       cell.classList.remove('conflict-reveal');
       renderRevealedItems();
+      sendFinalPos(team, pieceIdx, currentCell, logSteps, conn);
       return;
     }
 
     if (snake) {
       state.revealed.snakes.add(currentCell);
+      updateSnakeBadge(snake.team, true);
       playSound('sndSnake');
-      await showBanner('\u{1F40D} SNAKE! ' + currentCell + ' \u2191 ' + snake.to, 'snake-' + snake.team.toLowerCase(), 1400);
+      pushLog('🐍' + currentCell + '↑' + snake.to);
+      await showBanner('🐍 SNAKE! ' + currentCell + ' ↑ ' + snake.to, 'snake-' + snake.team.toLowerCase(), 1400);
       renderRevealedItems();
       state['team' + team].pieces[pieceIdx] = snake.to;
       renderPieces();
@@ -1114,12 +1192,14 @@ async function triggerChain(team, pieceIdx, landedCell) {
 
       if (visitedCells.has(currentCell)) {
         playSound('sndLoop');
-        await showBanner('\u{1F504} LOOP! Back to cell ' + entryCell, 'loop', 2200);
+        pushLog('🔄→' + entryCell);
+        await showBanner('🔄 LOOP! Back to cell ' + entryCell, 'loop', 2200);
         state['team' + team].pieces[pieceIdx] = entryCell;
         renderPieces();
         cellElements[entryCell].classList.add('highlight');
         await sleep(500);
         cellElements[entryCell].classList.remove('highlight');
+        sendFinalPos(team, pieceIdx, entryCell, logSteps, conn);
         return;
       }
       visitedCells.add(currentCell);
@@ -1128,8 +1208,10 @@ async function triggerChain(team, pieceIdx, landedCell) {
 
     if (pitfall) {
       state.revealed.pitfalls.add(currentCell);
+      updatePitfallBadge(pitfall.team, true);
       playSound('sndPitfall');
-      await showBanner('\u{1F573}\uFE0F PITFALL! ' + currentCell + ' \u2193 ' + pitfall.to, 'pitfall-' + pitfall.team.toLowerCase(), 1400);
+      pushLog('🕳️' + currentCell + '↓' + pitfall.to);
+      await showBanner('🕳️ PITFALL! ' + currentCell + ' ↓ ' + pitfall.to, 'pitfall-' + pitfall.team.toLowerCase(), 1400);
       renderRevealedItems();
       state['team' + team].pieces[pieceIdx] = pitfall.to;
       renderPieces();
@@ -1140,12 +1222,14 @@ async function triggerChain(team, pieceIdx, landedCell) {
 
       if (visitedCells.has(currentCell)) {
         playSound('sndLoop');
-        await showBanner('\u{1F504} LOOP! Back to cell ' + entryCell, 'loop', 2200);
+        pushLog('🔄→' + entryCell);
+        await showBanner('🔄 LOOP! Back to cell ' + entryCell, 'loop', 2200);
         state['team' + team].pieces[pieceIdx] = entryCell;
         renderPieces();
         cellElements[entryCell].classList.add('highlight');
         await sleep(500);
         cellElements[entryCell].classList.remove('highlight');
+        sendFinalPos(team, pieceIdx, entryCell, logSteps, conn);
         return;
       }
       visitedCells.add(currentCell);
@@ -1157,10 +1241,25 @@ async function triggerChain(team, pieceIdx, landedCell) {
 
   if (currentCell === 25) {
     playSound('sndGoal');
-    await showBanner('\u{1F3C1} ' + pieceEmoji(team, pieceIdx) + ' reached the GOAL!', 'goal', 1500);
+    pushLog('🏁');
+    await showBanner('🏁 ' + pieceEmoji(team, pieceIdx) + ' reached the GOAL!', 'goal', 1500);
   }
+
+  sendFinalPos(team, pieceIdx, currentCell, logSteps, conn);
 }
 
+function sendFinalPos(team, pieceIdx, finalCell, logSteps, conn) {
+  if (conn && conn.open) {
+    conn.send({
+      type: 'pieceResult',
+      team: team,
+      pieceIdx: pieceIdx,
+      finalCell: finalCell,
+      chainLog: logSteps
+    });
+  }
+}
+    
 function checkAllPiecesAtGoal(team) {
   return state['team' + team].pieces.every(function(p) { return p === 25; });
 }
@@ -1200,6 +1299,10 @@ renderTeamNames();
 renderPieces();
 updateTreasureBadge('A');
 updateTreasureBadge('B');
+updateSnakeBadge('A');
+updateSnakeBadge('B');
+updatePitfallBadge('A');
+updatePitfallBadge('B');
 updateTurn();
 updatePhase();
 
@@ -1226,30 +1329,33 @@ peer.on('error', (err) => {
   document.title = '❌ ' + err.type;
 });
 peer.on('open', function() { statusEl.textContent = '\u2705 Ready'; });
+let activeConn = null;
 peer.on('connection', function(conn) {
-  statusEl.textContent = '\u{1F7E2} GM Connected';
+  activeConn = conn;
+  statusEl.textContent = '🟢 GM Connected';
   statusEl.className = 'connected';
   conn.on('data', async function(msg) {
     console.log('Received:', msg);
-    await handleAction(msg);
+    await handleAction(msg, conn);
   });
   conn.on('close', function() {
-    statusEl.textContent = '\u26A0\uFE0F GM disconnected';
+    activeConn = null;
+    statusEl.textContent = '⚠️ GM disconnected';
     statusEl.className = 'waiting';
   });
 });
 peer.on('error', function(err) { statusEl.textContent = '\u274C ' + err.type; });
 
-async function handleAction(msg) {
+async function handleAction(msg, conn) {
   switch (msg.type) {
     case 'movePiece':
       if (state.gameLocked) return;
       await showDice(msg.dice);
       const landedCell = await diceWalk(msg.team, msg.pieceIdx, msg.dice);
       await sleep(200);
-      await triggerChain(msg.team, msg.pieceIdx, landedCell);
+      await triggerChain(msg.team, msg.pieceIdx, landedCell, conn);
       if (checkAllPiecesAtGoal(msg.team)) {
-        await showBanner('\u{1F3C6} ' + state['team' + msg.team].name + ' got all 4 pieces to GOAL!', 'winner', 3000);
+        await showBanner('🏆 ' + state['team' + msg.team].name + ' got all 4 pieces to GOAL!', 'winner', 3000);
       }
       break;
     case 'switchTurn':
@@ -1271,6 +1377,8 @@ async function handleAction(msg) {
       renderRevealedItems();
       updateTreasureBadge('A');
       updateTreasureBadge('B');
+      updateSnakeBadge('A'); updateSnakeBadge('B');
+      updatePitfallBadge('A'); updatePitfallBadge('B');
       updateTurn();
       updatePhase();
       stopBgMusic();
@@ -1287,6 +1395,8 @@ async function handleAction(msg) {
       document.getElementById('teamBPanel').classList.remove('winner');
       updateTreasureBadge('A');
       updateTreasureBadge('B');
+      updateSnakeBadge('A'); updateSnakeBadge('B');
+      updatePitfallBadge('A'); updatePitfallBadge('B');
       renderRevealedItems();
       renderTeamNames();
       updatePhase();
@@ -1305,6 +1415,19 @@ async function handleAction(msg) {
     case 'endGameNow':
       if (!state.gameLocked) await lockGame();
       stopBgMusic();
+      break;
+    case 'rewindPiece':
+      if (state.gameLocked) return;
+      // Set piece to specified position (used by GM undo)
+      if (msg.team && typeof msg.pieceIdx === 'number' && typeof msg.position === 'number') {
+        state['team' + msg.team].pieces[msg.pieceIdx] = msg.position;
+        renderPieces();
+        cellElements[msg.position].classList.add('highlight');
+        playSound('sndDice', 0.4);
+        setTimeout(function() {
+          cellElements[msg.position].classList.remove('highlight');
+        }, 500);
+      }
       break;
   }
 }
