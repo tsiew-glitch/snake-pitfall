@@ -33,7 +33,35 @@
     body.playing::before {
       opacity: 0.75;
     }
-    
+    .cell.treasure-claimed::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 22px;
+  height: 11px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #0a0503 30%, #3e2723 60%, #5d4037 100%);
+  border: 2px solid #1a0d0a;
+  box-shadow:
+    inset 0 -2px 4px rgba(0,0,0,0.8),
+    0 0 6px rgba(0,0,0,0.7),
+    0 1px 2px rgba(255,215,0,0.25);
+  z-index: 6;
+  pointer-events: none;
+}
+.cell.treasure-claimed::before {
+  content: '✕';
+  position: absolute;
+  bottom: 3px;
+  right: 9px;
+  color: rgba(255, 215, 0, 0.55);
+  font-size: 10px;
+  font-weight: 900;
+  z-index: 7;
+  text-shadow: 0 0 3px rgba(0,0,0,0.9);
+  pointer-events: none;
+}
     /* === Animated background snakes during play === */
     #bgSnakes {
       position: fixed;
@@ -194,14 +222,17 @@
       z-index: 4;
     }
     .pieces {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 2px;
-      font-size: 1.2em;
-      z-index: 10;
-      max-width: 100%;
-      position: relative;
-    }
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 2px;
+  font-size: 0.85em;
+  z-index: 10;
+  max-width: 92%;
+  max-height: 88%;
+  position: relative;
+}
     .piece {
   display: inline-flex;
   align-items: center;
@@ -212,15 +243,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.8em;
-  height: 1.8em;
+  width: 1.55em;
+  height: 1.55em;
   border-radius: 50%;
   color: white;
   font-weight: 900;
   font-size: 0.95em;
-  border: 2px solid white;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6), inset 0 -2px 4px rgba(0,0,0,0.3);
+  border: 1.5px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.6), inset 0 -1px 3px rgba(0,0,0,0.3);
   text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+  flex-shrink: 0;
 }
 
     .cell.highlight {
@@ -885,6 +917,17 @@ function renderRevealedItems() {
     const item = findPitfallFrom(fromCell);
     if (item) drawCutePitfall(fromCell, item.to, item.team);
   });
+
+  // Toggle "dug hole" marker on cells with claimed treasures
+  for (let i = 1; i <= 25; i++) {
+    const cell = cellElements[i];
+    if (!cell) continue;
+    if (state.revealed.treasures.has(i)) {
+      cell.classList.add('treasure-claimed');
+    } else {
+      cell.classList.remove('treasure-claimed');
+    }
+  }
 }
 
 function drawCuteSnake(fromCell, toCell, team) {
@@ -1318,23 +1361,25 @@ async function triggerChain(team, pieceIdx, landedCell, conn) {
     break;
   }
 
-  if (currentCell === 25) {
+    if (currentCell === 25) {
     playSound('sndGoal');
     pushLog('🏁');
-    await showBanner('🏁 ' + pieceEmoji(team, pieceIdx) + ' reached the GOAL!', 'goal', 1500);
+    const goalLabel = (team === 'A' ? '🔵' : '🔴') + PIECE_LABELS[team][pieceIdx];
+    await showBanner('🏁 ' + goalLabel + ' reached the GOAL!', 'goal', 1500);
   }
 
   sendFinalPos(team, pieceIdx, currentCell, logSteps, conn);
 }
 
-function sendFinalPos(team, pieceIdx, finalCell, logSteps, conn) {
+function sendFinalPos(team, pieceIdx, finalCell, logSteps, conn, collectedTreasures) {
   if (conn && conn.open) {
     conn.send({
       type: 'pieceResult',
       team: team,
       pieceIdx: pieceIdx,
       finalCell: finalCell,
-      chainLog: logSteps
+      chainLog: logSteps,
+      collectedTreasures: collectedTreasures || []
     });
   }
 }
@@ -1493,18 +1538,34 @@ async function handleAction(msg, conn) {
       stopBgMusic();
       break;
     case 'rewindPiece':
-      if (state.gameLocked) return;
-      // Set piece to specified position (used by GM undo)
-      if (msg.team && typeof msg.pieceIdx === 'number' && typeof msg.position === 'number') {
-        state['team' + msg.team].pieces[msg.pieceIdx] = msg.position;
-        renderPieces();
-        cellElements[msg.position].classList.add('highlight');
-        playSound('sndDice', 0.4);
-        setTimeout(function() {
-          cellElements[msg.position].classList.remove('highlight');
-        }, 500);
-      }
-      break;
+  if (state.gameLocked) return;
+  if (msg.team && typeof msg.pieceIdx === 'number' && typeof msg.position === 'number') {
+    state['team' + msg.team].pieces[msg.pieceIdx] = msg.position;
+
+    // Unclaim collected treasures from that move
+    if (msg.unclaimTreasures && msg.unclaimTreasures.length) {
+      msg.unclaimTreasures.forEach(function(t) {
+        state.revealed.treasures.delete(t.cell);
+        // Refund the collector
+        state['team' + msg.team].treasures -= t.ownerTeams.length;
+        if (state['team' + msg.team].treasures < 0) state['team' + msg.team].treasures = 0;
+        // Update badges for OWNER teams (their treasure goes back to "unrevealed")
+        t.ownerTeams.forEach(function(ownerTeam) {
+          updateTreasureBadge(ownerTeam, false);
+        });
+      });
+      updateScores();
+      renderRevealedItems();  // removes the dug-hole markers
+    }
+
+    renderPieces();
+    cellElements[msg.position].classList.add('highlight');
+    playSound('sndDice', 0.4);
+    setTimeout(function() {
+      cellElements[msg.position].classList.remove('highlight');
+    }, 500);
+  }
+  break;
   }
 }
 
