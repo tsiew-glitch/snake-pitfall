@@ -894,12 +894,13 @@ function undoLastMove() {
   // Restore piece position
   teamPieces[last.team][last.pieceIdx] = last.from;
   // Tell display to also rewind
-  if (conn && conn.open) {
+    if (conn && conn.open) {
     conn.send({
       type: 'rewindPiece',
       team: last.team,
       pieceIdx: last.pieceIdx,
-      position: last.from
+      position: last.from,
+      unclaimTreasures: last.collectedTreasures || []
     });
   }
   // Mark log entry as undone (strikethrough)
@@ -1012,7 +1013,7 @@ function undoLastMove() {
   });
   conn.on('data', (msg) => {
     if (!msg || !msg.type) return;
-    if (msg.type === 'pieceResult') {
+        if (msg.type === 'pieceResult') {
       // Display tells us the authoritative final cell of the moved piece
       const prevPos = teamPieces[msg.team][msg.pieceIdx];
       teamPieces[msg.team][msg.pieceIdx] = msg.finalCell;
@@ -1022,7 +1023,8 @@ function undoLastMove() {
         pieceIdx: msg.pieceIdx,
         from: prevPos,
         to: msg.finalCell,
-        chainLog: msg.chainLog || []
+        chainLog: msg.chainLog || [],
+        collectedTreasures: msg.collectedTreasures || []
       });
       addLogEntry(msg.team, msg.pieceIdx, prevPos, msg.finalCell, msg.chainLog);
       renderPieceSelector();
