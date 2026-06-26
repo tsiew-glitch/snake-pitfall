@@ -33,34 +33,29 @@
     body.playing::before {
       opacity: 0.75;
     }
-    .cell.treasure-claimed::after {
-  content: '';
+    .claimed-treasure {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
+  top: 3px;
+  right: 3px;
   width: 22px;
-  height: 11px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, #0a0503 30%, #3e2723 60%, #5d4037 100%);
-  border: 2px solid #1a0d0a;
-  box-shadow:
-    inset 0 -2px 4px rgba(0,0,0,0.8),
-    0 0 6px rgba(0,0,0,0.7),
-    0 1px 2px rgba(255,215,0,0.25);
+  height: 22px;
   z-index: 6;
   pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.9));
+  animation: treasurePopIn 0.5s ease;
 }
-.cell.treasure-claimed::before {
-  content: '✕';
-  position: absolute;
-  bottom: 3px;
-  right: 9px;
-  color: rgba(255, 215, 0, 0.55);
-  font-size: 10px;
-  font-weight: 900;
-  z-index: 7;
-  text-shadow: 0 0 3px rgba(0,0,0,0.9);
-  pointer-events: none;
+.claimed-treasure + .claimed-treasure {
+  right: 28px;  /* 2nd box stacks to the left of 1st */
+}
+.claimed-treasure svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+@keyframes treasurePopIn {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  60% { transform: scale(1.25) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
     /* === Animated background snakes during play === */
     #bgSnakes {
@@ -653,6 +648,7 @@
         if (p && p.catch) p.catch(() => {}); // ignore autoplay blocks
       } catch (e) {}
     }
+    
     function stopSound(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -749,7 +745,32 @@ function getRevealedCountByTeam(itemType, team) {
   });
   return count;
 }
-
+    function openedChestSVG() {
+  return '<svg viewBox="0 0 24 24">' +
+    // shadow under chest
+    '<ellipse cx="12" cy="21.5" rx="9" ry="1.2" fill="rgba(0,0,0,0.5)"/>' +
+    // chest body (bottom half)
+    '<rect x="3.5" y="12" width="17" height="9" rx="1" fill="#8b5a2b" stroke="#3e2616" stroke-width="0.7"/>' +
+    // wood plank lines
+    '<line x1="3.5" y1="15" x2="20.5" y2="15" stroke="#5d3a1c" stroke-width="0.5"/>' +
+    '<line x1="3.5" y1="18" x2="20.5" y2="18" stroke="#5d3a1c" stroke-width="0.5"/>' +
+    // metal corners (bottom)
+    '<rect x="3.5" y="19" width="2" height="2" fill="#4a3520"/>' +
+    '<rect x="18.5" y="19" width="2" height="2" fill="#4a3520"/>' +
+    // opened lid (curved, tilted back)
+    '<path d="M 3.5 12 Q 12 4 20.5 12 L 20.5 13.5 Q 12 6 3.5 13.5 Z" fill="#a67137" stroke="#3e2616" stroke-width="0.7"/>' +
+    // dark interior
+    '<rect x="5" y="12.5" width="14" height="3" fill="#1a0d04"/>' +
+    // gold coins inside (overflowing)
+    '<circle cx="8" cy="14" r="1.6" fill="#ffd700" stroke="#b8941f" stroke-width="0.3"/>' +
+    '<circle cx="12" cy="13.5" r="1.8" fill="#ffed4a" stroke="#b8941f" stroke-width="0.3"/>' +
+    '<circle cx="16" cy="14" r="1.6" fill="#ffd700" stroke="#b8941f" stroke-width="0.3"/>' +
+    '<circle cx="10.5" cy="15" r="1.3" fill="#ffec80"/>' +
+    '<circle cx="13.5" cy="15.2" r="1.3" fill="#ffec80"/>' +
+    // sparkle on top coin
+    '<circle cx="11.5" cy="13" r="0.4" fill="white" opacity="0.9"/>' +
+    '</svg>';
+}
 
     const PIECE_NUMS = ['①', '②', '③', '④'];
     const PIECE_LABELS = {
@@ -918,14 +939,23 @@ function renderRevealedItems() {
     if (item) drawCutePitfall(fromCell, item.to, item.team);
   });
 
-  // Toggle "dug hole" marker on cells with claimed treasures
+   // Render opened-treasure-box markers on cells with claimed treasures
   for (let i = 1; i <= 25; i++) {
     const cell = cellElements[i];
     if (!cell) continue;
+    // Remove any existing markers first
+    cell.querySelectorAll('.claimed-treasure').forEach(function(el) { el.remove(); });
     if (state.revealed.treasures.has(i)) {
-      cell.classList.add('treasure-claimed');
-    } else {
-      cell.classList.remove('treasure-claimed');
+      // Count how many treasures were placed on this cell (1 or 2)
+      let count = 0;
+      if (state.items.A.treasures.includes(i)) count++;
+      if (state.items.B.treasures.includes(i)) count++;
+      for (let k = 0; k < count; k++) {
+        const marker = document.createElement('div');
+        marker.className = 'claimed-treasure';
+        marker.innerHTML = openedChestSVG();
+        cell.appendChild(marker);
+      }
     }
   }
 }
