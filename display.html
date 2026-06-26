@@ -18,6 +18,66 @@
       padding: 20px;
       position: relative;
     }
+    #audienceLog {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.45);
+  border-radius: 10px;
+  border-top: 2px solid rgba(255,255,255,0.15);
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+}
+#audienceLog .log-title {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 0.95em;
+  font-weight: bold;
+  color: #ffd700;
+  text-align: center;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+#audienceLog .empty {
+  text-align: center;
+  opacity: 0.5;
+  font-style: italic;
+}
+.alog-entry {
+  padding: 5px 8px;
+  margin-bottom: 4px;
+  border-radius: 5px;
+  border-left: 3px solid #4a90e2;
+  background: rgba(74,144,226,0.12);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.alog-entry.team-b {
+  border-left-color: #e74c3c;
+  background: rgba(231,76,60,0.12);
+}
+.alog-entry.undone {
+  opacity: 0.35;
+  text-decoration: line-through;
+}    
+.alog-piece {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55em;
+  height: 1.55em;
+  border-radius: 50%;
+  color: white;
+  font-weight: 900;
+  font-size: 0.85em;
+  border: 1.5px solid white;
+  flex-shrink: 0;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.6);
+}
+.alog-piece.team-a { background: #4a90e2; }
+.alog-piece.team-b { background: #e74c3c; }
+.alog-text { flex: 1; }
     /* Subtle background poster during play */
     body::before {
       content: '';
@@ -602,13 +662,16 @@
     </svg>
   </div>
 
-  <div class="team-card team-b" id="teamBPanel">
-    <div class="team-name" id="teamBName">🔴 Team B</div>
-    <div class="piece-positions" id="teamBPieces">1:1 2:1 3:1 4:1</div>
-    <div class="breakdown">Pieces sum: <span id="teamBPieceScore">4</span></div>
-    <div class="treasure-collected">💎 Collected: <span id="teamBTreasureCollected">0</span></div>
-    <div class="total">TOTAL: <span id="teamBTotal">4</span></div>
-    <div class="legend-row" id="teamBLegend"></div>
+ <div class="team-card team-b" id="teamBPanel">
+  <div class="team-name" id="teamBName">🔴 Team B</div>
+  <div class="piece-positions" id="teamBPieces">1:1 2:1 3:1 4:1</div>
+  <div class="breakdown">Pieces sum: <span id="teamBPieceScore">4</span></div>
+  <div class="treasure-collected">💎 Collected: <span id="teamBTreasureCollected">0</span></div>
+  <div class="total">TOTAL: <span id="teamBTotal">4</span></div>
+  <div class="legend-row" id="teamBLegend"></div>
+  <div id="audienceLog">
+    <div class="log-title">📜 Move Log</div>
+    <div id="audienceLogList"><div class="empty">No moves yet</div></div>
   </div>
 </div>
 
@@ -885,7 +948,34 @@ for (let r = 0; r < 5; r++) {
   updateScores();
 }
 
+    function addAudienceLogEntry(team, pieceIdx, fromCell, toCell, chainLog) {
+  const list = document.getElementById('audienceLogList');
+  if (!list) return;
+  // Remove "No moves yet" placeholder
+  const empty = list.querySelector('.empty');
+  if (empty) empty.remove();
 
+  const entry = document.createElement('div');
+  entry.className = 'alog-entry ' + (team === 'A' ? 'team-a' : 'team-b');
+  const tokenClass = team === 'A' ? 'team-a' : 'team-b';
+  const label = PIECE_LABELS[team][pieceIdx];
+  const teamName = state['team' + team].name;
+  let chainStr = '';
+  if (chainLog && chainLog.length) chainStr = ' ' + chainLog.join(' ');
+  entry.innerHTML =
+    '<span class="alog-piece ' + tokenClass + '">' + label + '</span>' +
+    '<span class="alog-text">' + escapeHTML(teamName) + ': ' + fromCell + ' → ' + toCell + chainStr + '</span>';
+  list.insertBefore(entry, list.firstChild);  // newest on top
+
+  // Auto-scroll to top so newest is visible
+  list.scrollTop = 0;
+}
+
+function clearAudienceLog() {
+  const list = document.getElementById('audienceLogList');
+  if (list) list.innerHTML = '<div class="empty">No moves yet</div>';
+}
+    
     function getAllSnakesFrom(cellNum) {
   const snakes = [];
   for (const team of ['A', 'B']) {
@@ -1313,24 +1403,38 @@ async function triggerChain(team, pieceIdx, landedCell, conn) {
     const pitfall = findPitfallFrom(currentCell);
 
     if (snake && pitfall) {
-      state.revealed.snakes.add(currentCell);
+            state.revealed.snakes.add(currentCell);
       state.revealed.pitfalls.add(currentCell);
-      updateSnakeBadge(snake.team, true);
-      updatePitfallBadge(pitfall.team, true);
+      ['A', 'B'].forEach(function(t) {
+        if (state.items[t].snakes.some(function(s) { return s.from === currentCell; })) {
+          updateSnakeBadge(t, true);
+        }
+        if (state.items[t].pitfalls.some(function(p) { return p.from === currentCell; })) {
+          updatePitfallBadge(t, true);
+        }
+      });
       const cell = cellElements[currentCell];
       cell.classList.add('conflict-reveal');
       playSound('sndConflict');
       pushLog('⚖️@' + currentCell);
       await showBanner('⚖️ NEUTRALIZED at ' + currentCell + '!', 'conflict', 2000);
-      cell.classList.remove('conflict-reveal');
+            cell.classList.remove('conflict-reveal');
       renderRevealedItems();
-      sendFinalPos(team, pieceIdx, currentCell, logSteps, conn);
+      addAudienceLogEntry(team, pieceIdx, entryCell, currentCell, logSteps);
+      sendFinalPos(team, pieceIdx, currentCell, logSteps, conn, collectedTreasures);
       return;
     }
 
     if (snake) {
       state.revealed.snakes.add(currentCell);
-      updateSnakeBadge(snake.team, true);
+            state.revealed.snakes.add(currentCell);
+      // Update badges for ALL teams that have a snake at this cell
+      ['A', 'B'].forEach(function(t) {
+        if (state.items[t].snakes.some(function(s) { return s.from === currentCell; })) {
+          updateSnakeBadge(t, true);
+        }
+      });
+      playSound('sndSnake');
       playSound('sndSnake');
       pushLog('🐍' + currentCell + '↑' + snake.to);
       await showBanner('🐍 SNAKE! ' + currentCell + ' ↑ ' + snake.to, 'snake-' + snake.team.toLowerCase(), 1400);
@@ -1351,7 +1455,8 @@ async function triggerChain(team, pieceIdx, landedCell, conn) {
         cellElements[entryCell].classList.add('highlight');
         await sleep(500);
         cellElements[entryCell].classList.remove('highlight');
-        sendFinalPos(team, pieceIdx, entryCell, logSteps, conn);
+        addAudienceLogEntry(team, pieceIdx, entryCell, entryCell, logSteps);
+        sendFinalPos(team, pieceIdx, entryCell, logSteps, conn, collectedTreasures);
         return;
       }
       visitedCells.add(currentCell);
@@ -1360,7 +1465,13 @@ async function triggerChain(team, pieceIdx, landedCell, conn) {
 
     if (pitfall) {
       state.revealed.pitfalls.add(currentCell);
-      updatePitfallBadge(pitfall.team, true);
+            state.revealed.pitfalls.add(currentCell);
+      ['A', 'B'].forEach(function(t) {
+        if (state.items[t].pitfalls.some(function(p) { return p.from === currentCell; })) {
+          updatePitfallBadge(t, true);
+        }
+      });
+      playSound('sndPitfall');
       playSound('sndPitfall');
       pushLog('🕳️' + currentCell + '↓' + pitfall.to);
       await showBanner('🕳️ PITFALL! ' + currentCell + ' ↓ ' + pitfall.to, 'pitfall-' + pitfall.team.toLowerCase(), 1400);
@@ -1381,7 +1492,8 @@ async function triggerChain(team, pieceIdx, landedCell, conn) {
         cellElements[entryCell].classList.add('highlight');
         await sleep(500);
         cellElements[entryCell].classList.remove('highlight');
-        sendFinalPos(team, pieceIdx, entryCell, logSteps, conn);
+        addAudienceLogEntry(team, pieceIdx, entryCell, entryCell, logSteps);
+        sendFinalPos(team, pieceIdx, entryCell, logSteps, conn, collectedTreasures);
         return;
       }
       visitedCells.add(currentCell);
@@ -1397,7 +1509,7 @@ async function triggerChain(team, pieceIdx, landedCell, conn) {
     const goalLabel = (team === 'A' ? '🔵' : '🔴') + PIECE_LABELS[team][pieceIdx];
     await showBanner('🏁 ' + goalLabel + ' reached the GOAL!', 'goal', 1500);
   }
-
+  addAudienceLogEntry(team, pieceIdx, entryCell, currentCell, logSteps);
   sendFinalPos(team, pieceIdx, currentCell, logSteps, conn);
 }
 
@@ -1533,6 +1645,7 @@ async function handleAction(msg, conn) {
       updateTurn();
       updatePhase();
       stopBgMusic();
+      clearAudienceLog();
       break;
     case 'startGame':
       state.phase = 'playing';
@@ -1552,6 +1665,7 @@ async function handleAction(msg, conn) {
       renderTeamNames();
       updatePhase();
       playBgMusic();
+      clearAudienceLog();
       break;
     case 'setupMode':
       state.phase = 'setup';
@@ -1595,6 +1709,17 @@ async function handleAction(msg, conn) {
       cellElements[msg.position].classList.remove('highlight');
     }, 500);
   }
+      // Mark most recent non-undone audience log entry as undone
+    const list = document.getElementById('audienceLogList');
+    if (list) {
+      const entries = list.querySelectorAll('.alog-entry');
+      for (let k = 0; k < entries.length; k++) {
+        if (!entries[k].classList.contains('undone')) {
+          entries[k].classList.add('undone');
+          break;
+        }
+      }
+    }    
   break;
   }
 }
