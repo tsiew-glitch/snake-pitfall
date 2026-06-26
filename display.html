@@ -19,16 +19,19 @@
       position: relative;
     }
     #audienceLog {
-  margin-top: 14px;
-  padding: 10px 12px;
-  background: rgba(0,0,0,0.45);
-  border-radius: 10px;
-  border-top: 2px solid rgba(255,255,255,0.15);
-  max-height: 260px;
+  width: min(60vh, 55vw);   /* same width as board */
+  margin: 20px auto 30px auto;
+  padding: 12px 16px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 12px;
+  border: 2px solid rgba(255,215,0,0.25);
+  max-height: 200px;
   overflow-y: auto;
-  font-size: 0.9em;
-  font-family: 'Courier New', monospace;
+  font-size: 0.95em;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
+#audienceLog.hidden { display: none; }
 #audienceLog .log-title {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 0.95em;
@@ -44,15 +47,17 @@
   font-style: italic;
 }
 .alog-entry {
-  padding: 5px 8px;
-  margin-bottom: 4px;
-  border-radius: 5px;
-  border-left: 3px solid #4a90e2;
-  background: rgba(74,144,226,0.12);
+  padding: 7px 12px;
+  margin-bottom: 5px;
+  border-radius: 6px;
+  border-left: 4px solid #4a90e2;
+  background: rgba(74,144,226,0.15);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  font-size: 1em;
 }
+.alog-entry .alog-text { line-height: 1.4; }
 .alog-entry.team-b {
   border-left-color: #e74c3c;
   background: rgba(231,76,60,0.12);
@@ -346,7 +351,7 @@
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  align-items: flex-start;
+  align-items: center;     /* center vertically with board */
   justify-content: center;
   padding: 0 10px;
 }
@@ -669,12 +674,11 @@
   <div class="treasure-collected">💎 Collected: <span id="teamBTreasureCollected">0</span></div>
   <div class="total">TOTAL: <span id="teamBTotal">4</span></div>
   <div class="legend-row" id="teamBLegend"></div>
-  <div id="audienceLog">
-    <div class="log-title">📜 Move Log</div>
-    <div id="audienceLogList"><div class="empty">No moves yet</div></div>
-  </div>
 </div>
-
+<div id="audienceLog" class="hidden">
+  <div class="log-title">📜 Move Log</div>
+  <div id="audienceLogList"><div class="empty">No moves yet</div></div>
+</div>
   <div id="diceDisplay">🎲</div>
   <div id="bigBanner"></div>
 
@@ -951,7 +955,6 @@ for (let r = 0; r < 5; r++) {
     function addAudienceLogEntry(team, pieceIdx, fromCell, toCell, chainLog) {
   const list = document.getElementById('audienceLogList');
   if (!list) return;
-  // Remove "No moves yet" placeholder
   const empty = list.querySelector('.empty');
   if (empty) empty.remove();
 
@@ -960,14 +963,53 @@ for (let r = 0; r < 5; r++) {
   const tokenClass = team === 'A' ? 'team-a' : 'team-b';
   const label = PIECE_LABELS[team][pieceIdx];
   const teamName = state['team' + team].name;
-  let chainStr = '';
-  if (chainLog && chainLog.length) chainStr = ' ' + chainLog.join(' ');
+
+  // Build a clean trail: fromCell → action → cell → action → cell ...
+  // chainLog entries look like: '🐍4↑8', '🕳️8↓3', '💎@7', '💎×2@8', '⚖️@5', '🔄→1', '🏁'
+  const parts = [String(fromCell)];
+  if (chainLog && chainLog.length) {
+    chainLog.forEach(function(step) {
+      // Snake:  🐍4↑8  -> action '🐍↑', dest '8'
+      let m = step.match(/^🐍(\d+)↑(\d+)$/);
+      if (m) { parts.push('🐍↑'); parts.push(m[2]); return; }
+      // Pitfall: 🕳️4↓8 -> '🕳️↓', '8'
+      m = step.match(/^🕳️(\d+)↓(\d+)$/);
+      if (m) { parts.push('🕳️↓'); parts.push(m[2]); return; }
+      // Treasure (single): 💎@7 -> just '💎' (no new cell, stays on same cell)
+      m = step.match(/^💎@(\d+)$/);
+      if (m) { parts.push('💎'); return; }
+      // Treasure (multi): 💎×2@7 -> '💎×2'
+      m = step.match(/^💎×(\d+)@(\d+)$/);
+      if (m) { parts.push('💎×' + m[1]); return; }
+      // Conflict: ⚖️@7 -> '⚖️' (no movement)
+      m = step.match(/^⚖️@(\d+)$/);
+      if (m) { parts.push('⚖️'); return; }
+      // Loop: 🔄→1 -> '🔄', '1'
+      m = step.match(/^🔄→(\d+)$/);
+      if (m) { parts.push('🔄'); parts.push(m[1]); return; }
+      // Goal
+      if (step === '🏁') { parts.push('🏁'); return; }
+      // Fallback
+      parts.push(step);
+    });
+  } else {
+    // No chain events — just simple move
+    parts.push(String(toCell));
+  }
+
+  // Dedup consecutive equal tokens (in case chain ended at same cell already in parts)
+  const compact = [parts[0]];
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i] !== compact[compact.length - 1]) compact.push(parts[i]);
+  }
+
+  // Join with arrow separators
+  const trail = compact.join(' → ');
+
   entry.innerHTML =
     '<span class="alog-piece ' + tokenClass + '">' + label + '</span>' +
-    '<span class="alog-text">' + escapeHTML(teamName) + ': ' + fromCell + ' → ' + toCell + chainStr + '</span>';
-  list.insertBefore(entry, list.firstChild);  // newest on top
-
-  // Auto-scroll to top so newest is visible
+    '<span class="alog-text"><strong>' + escapeHTML(teamName) + ':</strong> ' + trail + '</span>';
+  list.insertBefore(entry, list.firstChild);
   list.scrollTop = 0;
 }
 
@@ -1544,14 +1586,17 @@ function updateTurn() {
 function updatePhase() {
   const welcome = document.getElementById('welcomeSplash');
   const layout = document.getElementById('gameLayout');
+  const log = document.getElementById('audienceLog');
   if (state.phase === 'setup') {
     welcome.classList.remove('hidden');
     if (layout) layout.classList.add('hidden');
+    if (log) log.classList.add('hidden');
     document.body.classList.remove('playing');
     document.getElementById('gameOverSplash').classList.remove('show');
   } else {
     welcome.classList.add('hidden');
     if (layout) layout.classList.remove('hidden');
+    if (log) log.classList.remove('hidden');
     document.body.classList.add('playing');
   }
   updateGameStatusBadge();
